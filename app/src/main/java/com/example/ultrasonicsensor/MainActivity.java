@@ -5,7 +5,6 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -15,6 +14,7 @@ import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -24,6 +24,8 @@ public class MainActivity extends AppCompatActivity {
     private UsbManager manager;
     private UsbSerialDriver driver;
     private UsbDeviceConnection connection;
+    private UsbSerialPort port;
+    private boolean isPrinting;
 
     private ConsoleView consoleView;
 
@@ -35,30 +37,27 @@ public class MainActivity extends AppCompatActivity {
         consoleView.println("Console view created.");
     }
 
-    public void onClickDoSomething(View view) {
-        consoleView.println(TAG + "onClickDoSomething");
+    public void onClickOpenConnection(View view) {
+        consoleView.println("---onClickOpenConnection");
         try {
             findAllAvailableDriversFromAttachedDevices();
             if (availableDrivers.size() > 0) {
                 openConnectionToTheFirstAvailableDriver();
-                UsbSerialPort port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+                port = driver.getPorts().get(0); // Most devices have just one port (port 0)
                 try {
                     port.open(connection);
-                    port.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                    consoleView.println(TAG + "port.open");
-                    Toast.makeText(this, "port.open", Toast.LENGTH_SHORT).show();
-                    port.close();
+                    port.setParameters(57600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+                    consoleView.println("port.open");
                 } catch (IOException e) {
                     e.printStackTrace();
-                    consoleView.println(TAG + "IOException");
-                    Toast.makeText(this, "IOException", Toast.LENGTH_SHORT).show();
+                    consoleView.println("IOException");
                 }
             } else {
-                consoleView.println(TAG + "noDriversFound");
-                Toast.makeText(this, "noDriversFound", Toast.LENGTH_SHORT).show();
+                consoleView.println("noDriversFound");
             }
         } catch (Exception ex) {
             CrashReporter.logException(ex);
+            consoleView.println(ex.toString());
         }
     }
 
@@ -68,12 +67,10 @@ public class MainActivity extends AppCompatActivity {
         connection = manager.openDevice(driver.getDevice());
         if (connection == null) {
             // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            consoleView.println(TAG + "connection == null");
-            Toast.makeText(this, "connection == null", Toast.LENGTH_SHORT).show();
+            consoleView.println("connection == null");
             return;
         }
-        consoleView.println(TAG + "openConnectionToTheFirstAvailableDriver");
-        Toast.makeText(this, "openConnectionToTheFirstAvailableDriver", Toast.LENGTH_SHORT).show();
+        consoleView.println("openConnectionToTheFirstAvailableDriver");
     }
 
     private void findAllAvailableDriversFromAttachedDevices() {
@@ -81,22 +78,43 @@ public class MainActivity extends AppCompatActivity {
         manager = (UsbManager) getSystemService(Context.USB_SERVICE);
         availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
         if (availableDrivers.isEmpty()) {
-            consoleView.println(TAG + "availableDrivers.isEmpty");
-            Toast.makeText(this, "availableDrivers.isEmpty", Toast.LENGTH_SHORT).show();
+            consoleView.println("availableDrivers.isEmpty");
             return;
         } else {
-            for (UsbSerialDriver availableDriver : availableDrivers) {
-                consoleView.println("-----");
+            for (int i = 0; i < availableDrivers.size(); i++) {
+                UsbSerialDriver availableDriver = availableDrivers.get(i);
+                consoleView.println("---device---" + i);
                 consoleView.println("availableDriver device: " + availableDriver.getDevice());
                 consoleView.println("availableDriver ports: " + availableDriver.getPorts());
-                consoleView.println("-----");
+                consoleView.println("------");
             }
         }
-        consoleView.println(TAG + "findAllAvailableDriversFromAttachedDevices");
-        Toast.makeText(this, "findAllAvailableDriversFromAttachedDevices", Toast.LENGTH_SHORT).show();
+        consoleView.println("findAllAvailableDriversFromAttachedDevices");
     }
 
-    public void onClickPrintLine(View view) {
-        consoleView.println("New line printed.");
+    public void onClickPrintData(View view) {
+        consoleView.println("---onClickDataPrint");
+        byte[] readBuffer = new byte[64];
+//        if (isPrinting) {
+//
+//        } else {
+        if (port != null) {
+            try {
+                port.read(readBuffer, 50);
+//                try {
+//                    wait(1000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                    consoleView.println(e);
+//                }
+                consoleView.println(Arrays.toString(readBuffer));
+            } catch (IOException e) {
+                e.printStackTrace();
+                consoleView.println(e);
+            }
+        } else {
+            consoleView.println("port == null");
+        }
+//        }
     }
 }
