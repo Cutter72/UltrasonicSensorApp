@@ -9,6 +9,7 @@ import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.balsikandar.crashreporter.CrashReporter;
+import com.google.android.things.pio.PeripheralManager;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -18,14 +19,14 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String TAG = MainActivity.class.getSimpleName() + ": ";
+    private static final String mik3y = "mik3y: ";
+    private static final String androidUart = "android_UART: ";
 
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
     private UsbSerialDriver driver;
     private UsbDeviceConnection connection;
     private UsbSerialPort port;
-    private boolean isPrinting;
 
     private ConsoleView consoleView;
 
@@ -39,6 +40,26 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickOpenConnection(View view) {
         consoleView.println("---onClickOpenConnection");
+//        mik3yConnection();
+        androidUartConnection();
+    }
+
+    private void androidUartConnection() {
+        PeripheralManager manager = PeripheralManager.getInstance();
+        List<String> deviceList = manager.getUartDeviceList();
+        if (deviceList.isEmpty()) {
+            consoleView.println(androidUart + "No UART port available on this device.");
+        } else {
+            consoleView.println(androidUart + "List of available devices: " + deviceList);
+        }
+    }
+
+    public void onClickPrintData(View view) {
+        consoleView.println("---onClickDataPrint");
+//        mik3yPrintData();
+    }
+
+    private void mik3yConnection() {
         try {
             findAllAvailableDriversFromAttachedDevices();
             if (availableDrivers.size() > 0) {
@@ -47,17 +68,17 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     port.open(connection);
                     port.setParameters(57600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                    consoleView.println("port.open");
+                    consoleView.println(mik3y + "port.open");
                 } catch (IOException e) {
                     e.printStackTrace();
-                    consoleView.println("IOException");
+                    consoleView.println(mik3y + "IOException");
                 }
             } else {
-                consoleView.println("noDriversFound");
+                consoleView.println(mik3y + "noDriversFound");
             }
         } catch (Exception ex) {
             CrashReporter.logException(ex);
-            consoleView.println(ex.toString());
+            consoleView.println(mik3y + ex.toString());
         }
     }
 
@@ -67,10 +88,10 @@ public class MainActivity extends AppCompatActivity {
         connection = manager.openDevice(driver.getDevice());
         if (connection == null) {
             // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            consoleView.println("connection == null");
+            consoleView.println(mik3y + "connection == null");
             return;
         }
-        consoleView.println("openConnectionToTheFirstAvailableDriver");
+        consoleView.println(mik3y + "openConnectionToTheFirstAvailableDriver");
     }
 
     private void findAllAvailableDriversFromAttachedDevices() {
@@ -78,43 +99,32 @@ public class MainActivity extends AppCompatActivity {
         manager = (UsbManager) getSystemService(Context.USB_SERVICE);
         availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
         if (availableDrivers.isEmpty()) {
-            consoleView.println("availableDrivers.isEmpty");
+            consoleView.println(mik3y + "availableDrivers.isEmpty");
             return;
         } else {
             for (int i = 0; i < availableDrivers.size(); i++) {
                 UsbSerialDriver availableDriver = availableDrivers.get(i);
-                consoleView.println("---device---" + i);
-                consoleView.println("availableDriver device: " + availableDriver.getDevice());
-                consoleView.println("availableDriver ports: " + availableDriver.getPorts());
-                consoleView.println("------");
+                consoleView.println(mik3y + "---device---" + i);
+                consoleView.println(mik3y + "availableDriver device: " + availableDriver.getDevice());
+                consoleView.println(mik3y + "availableDriver ports: " + availableDriver.getPorts());
+                consoleView.println(mik3y + "------");
             }
         }
-        consoleView.println("findAllAvailableDriversFromAttachedDevices");
+        consoleView.println(mik3y + "findAllAvailableDriversFromAttachedDevices");
     }
 
-    public void onClickPrintData(View view) {
-        consoleView.println("---onClickDataPrint");
+    private void mik3yPrintData() {
         byte[] readBuffer = new byte[64];
-//        if (isPrinting) {
-//
-//        } else {
         if (port != null) {
             try {
                 port.read(readBuffer, 50);
-//                try {
-//                    wait(1000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                    consoleView.println(e);
-//                }
-                consoleView.println(Arrays.toString(readBuffer));
+                consoleView.println(mik3y + Arrays.toString(readBuffer));
             } catch (IOException e) {
                 e.printStackTrace();
-                consoleView.println(e);
+                consoleView.println(mik3y + e);
             }
         } else {
-            consoleView.println("port == null");
+            consoleView.println(mik3y + "port == null");
         }
-//        }
     }
 }
