@@ -6,7 +6,7 @@
         vendor-id="1027"
         product-id="24577" />
 
-    <!-- Prolific TABLET BUILD IN UART -->
+    <!-- Prolific TABLET/Podstawka BUILD IN UART -->
     <!-- 0x067B / 0x2303: Prolific PL2303 -->
     <usb-device
         vendor-id="1659"

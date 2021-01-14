@@ -12,14 +12,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.UltrasonicSensor">
 
-        <uses-library android:name="com.google.android.things" />
+<!--        <uses-library android:name="com.google.android.things" />-->
 
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
 
-                <category android:name="android.intent.category.HOME" />
+                <!--                <category android:name="android.intent.category.HOME" />-->
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>

@@ -11,6 +11,7 @@ import android.widget.TextView;
 public class ConsoleView {
     private LinearLayout linearLayout;
     private ScrollView scrollView;
+    private TextView previousLine;
 
     public ConsoleView(LinearLayout linearLayout, ScrollView scrollView) {
         this.linearLayout = linearLayout;
@@ -23,15 +24,44 @@ public class ConsoleView {
         });
     }
 
+    public void println() {
+        Context context = linearLayout.getContext();
+        previousLine = new TextView(context);
+        previousLine.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        previousLine.setText("");
+        linearLayout.addView(previousLine);
+    }
+
     public void println(Object object) {
         String text = object.toString();
         System.out.println(text);
         Context context = linearLayout.getContext();
-        TextView newLine = new TextView(context);
-        newLine.setLayoutParams(new ViewGroup.LayoutParams(
+        previousLine = new TextView(context);
+        previousLine.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
-        newLine.setText(text);
-        linearLayout.addView(newLine);
+        previousLine.setText(text);
+        linearLayout.addView(previousLine);
+    }
+
+    public void print(Object object) {
+        boolean isNewLine = false;
+        String text = object.toString();
+        System.out.print(text);
+        Context context = linearLayout.getContext();
+        if (previousLine == null) {
+            previousLine = new TextView(context);
+            previousLine.setLayoutParams(new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            isNewLine = true;
+        }
+        String textToSet = previousLine.getText().toString() + text;
+        previousLine.setText(textToSet);
+        if (isNewLine) {
+            linearLayout.addView(previousLine);
+        }
     }
 }
