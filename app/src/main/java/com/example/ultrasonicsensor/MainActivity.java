@@ -141,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
                 int[] decimals = new int[5];
                 int counter = 0;
                 int sensorUnits;
+                double average = -1;
                 double distanceInCentimeters;
                 consoleView.println();
                 for (byte b : readBuffer) {
@@ -164,14 +165,14 @@ public class MainActivity extends AppCompatActivity {
                         if (measurements.size() % 3 == 0 && measurements.size() > 0) {
                             consoleView.println();
                         }
+                        double sum = 0;
+                        for (Double aDouble : measurements) {
+                            sum += aDouble;
+                        }
+                        average = sum / measurements.size();
+                        averages.add(average);
                     }
                 }
-                double sum = 0;
-                for (Double aDouble : measurements) {
-                    sum += aDouble;
-                }
-                double average = sum / measurements.size();
-                averages.add(average);
                 consoleView.println(String.format(Locale.getDefault(), "Average from %s measurements: %f cm", measurements.size(), average));
             } catch (IOException ex) {
                 ex.printStackTrace();
