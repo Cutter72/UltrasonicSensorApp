@@ -254,4 +254,9 @@ public class MainActivity extends AppCompatActivity {
             ((Button) view).setText(R.string.stop_auto_print);
         }
     }
+
+    public void onClickClearConsole(View view) {
+        consoleView.clear();
+        consoleView.println("CONSOLE CLEARED");
+    }
 }

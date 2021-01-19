@@ -19,29 +19,37 @@
         android:id="@+id/closeConnection"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="2dp"
         android:onClick="onClickCloseConnection"
         android:text="Close Conn."
-        app:layout_constraintStart_toEndOf="@+id/openConnection"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/openConnection" />
 
     <Button
         android:id="@+id/btnAutoPrint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="2dp"
         android:onClick="onClickAutoPrint"
         android:text="@string/start_auto_print"
-        app:layout_constraintEnd_toStartOf="@+id/reset"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/printData" />
 
     <Button
         android:id="@+id/reset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="2dp"
         android:onClick="onClickReset"
-        android:text="Reset"
+        android:text="Reset App"
+        app:layout_constraintEnd_toStartOf="@+id/clearConsole"
+        app:layout_constraintStart_toEndOf="@+id/openConnection"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/clearConsole"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="2dp"
+        android:onClick="onClickClearConsole"
+        android:text="Clear Console"
         app:layout_constraintEnd_toStartOf="@+id/calcAverageData"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -68,12 +76,12 @@
         android:id="@+id/scrollView"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/openConnection"
-        android:focusable="true"
-        android:focusableInTouchMode="true">
+        app:layout_constraintTop_toBottomOf="@+id/closeConnection">
 
         <LinearLayout
             android:id="@+id/linearLayout"
