@@ -1,6 +1,7 @@
 package com.example.ultrasonicsensor;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -21,9 +22,7 @@ import java.util.Locale;
 
 @SuppressWarnings("Convert2Lambda")
 public class MainActivity extends AppCompatActivity {
-    private static final String mik3y = "mik3y: ";
-    private static final String androidUart = "android_UART: ";
-    private static final double unitFactorInCentimeters = 0.00859536;
+    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536;
     public static MainActivity instance;
     public static boolean isRunning = false;
 
@@ -34,8 +33,11 @@ public class MainActivity extends AppCompatActivity {
     private UsbSerialPort port;
 
     private ConsoleView consoleView;
+    private Drawable btnBackgroundDrawable;
+    private int btnBackgroundColor;
     private List<Double> allMeasurements = new ArrayList<>();
 
+    @SuppressWarnings("ConstantConditions")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,6 +45,9 @@ public class MainActivity extends AppCompatActivity {
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
         instance = this;
+        Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
+        btnBackgroundDrawable = btnAutoPrint.getBackground();
+        btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
     }
 
     @Override
@@ -54,20 +59,12 @@ public class MainActivity extends AppCompatActivity {
     public void onClickOpenConnection(View view) {
         consoleView.println("---onClickOpenConnection");
         mik3yConnection();
-//        androidUartConnection();
-    }
-
-    private void androidUartConnection() {
-//        PeripheralManager manager = PeripheralManager.getInstance();
-//        List<String> deviceList = manager.getUartDeviceList();
-//        if (deviceList.isEmpty()) {
-//            consoleView.println(androidUart + "No UART port available on this device.");
-//        } else {
-//            consoleView.println(androidUart + "List of available devices: " + deviceList);
-//        }
     }
 
     public void onClickPrintData(View view) {
+        if (view != null) {
+            consoleView.println("---onClickPrintData");
+        }
         mik3yPrintData();
     }
 
@@ -80,37 +77,39 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     port.open(connection);
                     port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                    consoleView.println(mik3y + "PORT OPEN");
+                    consoleView.println("PORT OPEN");
                 } catch (IOException ex) {
                     ex.printStackTrace();
                     CrashReporter.logException(ex);
-                    consoleView.println(mik3y + ex);
+                    consoleView.println(ex);
                 }
             } else {
-                consoleView.println(mik3y + "noDriversFound");
+                consoleView.println("noDriversFound");
             }
         } catch (Exception ex) {
             ex.printStackTrace();
             CrashReporter.logException(ex);
-            consoleView.println(mik3y + ex.toString());
+            consoleView.println(ex.toString());
         }
     }
 
     private void openConnectionToTheFirstAvailableDriver() {
         // Open a connection to the first available driver.
-        consoleView.println(mik3y + "openConnectionToTheFirstAvailableDriver");
+        consoleView.println("openConnectionToTheFirstAvailableDriver");
         driver = availableDrivers.get(0);
         connection = manager.openDevice(driver.getDevice());
         if (connection == null) {
             // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            consoleView.println(mik3y + "connection == null");
+            consoleView.println("connection == null");
             return;
         }
-        consoleView.println(mik3y + "CONNECTION OPEN");
+        consoleView.println("CONNECTION OPEN");
     }
 
     public void onClickCloseConnection(View view) {
-        consoleView.println(mik3y + "onClickCloseConnection");
+        if (view != null) {
+            consoleView.println("---onClickCloseConnection");
+        }
         if (connection != null) {
             try {
                 port.close();
@@ -119,23 +118,23 @@ public class MainActivity extends AppCompatActivity {
             }
             connection.close();
         }
-        consoleView.println(mik3y + "CONNECTION CLOSED");
+        consoleView.println("CONNECTION CLOSED");
     }
 
     private void findAllAvailableDriversFromAttachedDevices() {
         // Find all available drivers from attached devices.
-        consoleView.println(mik3y + "findAllAvailableDriversFromAttachedDevices");
+        consoleView.println("findAllAvailableDriversFromAttachedDevices");
         manager = (UsbManager) getSystemService(Context.USB_SERVICE);
         availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
         if (availableDrivers.isEmpty()) {
-            consoleView.println(mik3y + "availableDrivers.isEmpty");
+            consoleView.println("availableDrivers.isEmpty");
         } else {
             for (int i = 0; i < availableDrivers.size(); i++) {
                 UsbSerialDriver availableDriver = availableDrivers.get(i);
-                consoleView.println(mik3y + "---device---" + i);
-                consoleView.println(mik3y + "availableDriver device: " + availableDriver.getDevice());
-                consoleView.println(mik3y + "availableDriver ports: " + availableDriver.getPorts());
-                consoleView.println(mik3y + "------");
+                consoleView.println("---device---" + i);
+                consoleView.println("availableDriver device: " + availableDriver.getDevice());
+                consoleView.println("availableDriver ports: " + availableDriver.getPorts());
+                consoleView.println("------");
             }
         }
     }
@@ -146,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
         if (port != null) {
             try {
                 port.read(readBuffer, 250);
-//                consoleView.println(mik3y + Arrays.toString(readBuffer));
+//                consoleView.println(Arrays.toString(readBuffer));
                 int[] decimals = new int[5];
                 int counter = 0;
                 int sensorUnits;
@@ -165,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     if (counter - 1 == 4) {
                         sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
-                        distanceInCentimeters = sensorUnits * unitFactorInCentimeters;
+                        distanceInCentimeters = sensorUnits * CENTIMETERS_UNIT_FACTOR;
                         measurements.add(distanceInCentimeters);
                         allMeasurements.add(distanceInCentimeters);
 //                        consoleView.print(", SensorUnits: " + sensorUnits);
@@ -186,15 +185,15 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException ex) {
                 ex.printStackTrace();
                 CrashReporter.logException(ex);
-                consoleView.println(mik3y + ex);
+                consoleView.println(ex);
             }
         } else {
-            consoleView.println(mik3y + "port == null");
+            consoleView.println("port == null");
         }
     }
 
     public void onClickCalcAvg(View view) {
-        consoleView.println(mik3y + "onClickCalcAvg");
+        consoleView.println("---onClickCalcAvg");
         double sum = 0;
         for (Double aDouble : allMeasurements) {
             sum += aDouble;
@@ -205,21 +204,23 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickReset(View view) {
         consoleView.clear();
-        consoleView.println(mik3y + "onClickReset");
+        consoleView.println("---onClickReset");
         onClickCloseConnection(null);
         allMeasurements.clear();
         consoleView.println("DATA CLEARED");
         isRunning = false;
         ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_auto_print);
+        view.setBackgroundColor(btnBackgroundColor);
     }
 
-    @SuppressWarnings("BusyWait")
+    @SuppressWarnings({"BusyWait"})
     public void onClickAutoPrint(View view) {
-        consoleView.println("onClickAutoPrint");
+        consoleView.println("---onClickAutoPrint");
         if (isRunning) {
             consoleView.println("STOP READING");
             isRunning = false;
             ((Button) view).setText(R.string.start_auto_print);
+            view.setBackgroundColor(btnBackgroundColor);
         } else {
             consoleView.println("START READING");
             isRunning = true;
@@ -252,11 +253,13 @@ public class MainActivity extends AppCompatActivity {
             };
             new Thread(delayedRunnable).start();
             ((Button) view).setText(R.string.stop_auto_print);
+            view.setBackgroundColor(getColor(R.color.design_default_color_error));
         }
     }
 
     public void onClickClearConsole(View view) {
         consoleView.clear();
+        consoleView.println("---onClickClearConsole");
         consoleView.println("CONSOLE CLEARED");
     }
 }
