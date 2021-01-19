@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private UsbSerialPort port;
 
     private ConsoleView consoleView;
-    private List<Double> averages = new ArrayList<>();
+    private List<Double> allMeasurements = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -165,12 +165,6 @@ public class MainActivity extends AppCompatActivity {
                         if (measurements.size() % 3 == 0 && measurements.size() > 0) {
                             consoleView.println();
                         }
-                        double sum = 0;
-                        for (Double aDouble : measurements) {
-                            sum += aDouble;
-                        }
-                        average = sum / measurements.size();
-                        averages.add(average);
                     }
                 }
                 consoleView.println(String.format(Locale.getDefault(), "Average from %s measurements: %f cm", measurements.size(), average));
@@ -187,10 +181,18 @@ public class MainActivity extends AppCompatActivity {
     public void onClickCalcAvg(View view) {
         consoleView.println(mik3y + "onClickCalcAvg");
         double sum = 0;
-        for (Double aDouble : averages) {
+        for (Double aDouble : allMeasurements) {
             sum += aDouble;
         }
-        double average = sum / averages.size();
-        consoleView.println(String.format(Locale.getDefault(), "Average from %s averages: %f cm", averages.size(), average));
+        double average = sum / allMeasurements.size();
+        consoleView.println(String.format(Locale.getDefault(), "Average from all %s measurements: %f cm", allMeasurements.size(), average));
+    }
+
+    public void onClickReset(View view) {
+        consoleView.clear();
+        consoleView.println(mik3y + "onClickReset");
+        onClickCloseConnection(null);
+        allMeasurements.clear();
+        consoleView.println("DATA CLEARED");
     }
 }

@@ -64,4 +64,8 @@ public class ConsoleView {
             linearLayout.addView(previousLine);
         }
     }
+
+    public void clear() {
+        linearLayout.removeAllViews();
+    }
 }

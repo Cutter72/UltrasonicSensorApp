@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="onClickOpenConnection"
-        android:text="Open connection"
+        android:text="Open Conn."
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -20,8 +20,17 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:onClick="onClickCloseConnection"
-        android:text="Close connection"
+        android:text="Close Conn."
         app:layout_constraintStart_toEndOf="@+id/openConnection"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/reset"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onClickReset"
+        android:text="Reset"
+        app:layout_constraintEnd_toStartOf="@+id/calcAverageData"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
