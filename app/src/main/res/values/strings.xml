@@ -1,9 +1,9 @@
 <resources>
     <string name="app_name">UltrasonicSensor</string>
-    <string name="start_auto_print">Start Auto Print</string>
-    <string name="stop_auto_print">Stop Auto Print</string>
+    <string name="start_recording">Start Recording</string>
+    <string name="stop_recording">Stop Recording</string>
     <string name="open_connection">Open Connection</string>
-    <string name="close_connection">"Close connection "</string>
+    <string name="close_connection">Close connection</string>
     <string name="reset_app">Reset App</string>
     <string name="clear_console">Clear Console</string>
     <string name="calc_avg">Calc Avg</string>

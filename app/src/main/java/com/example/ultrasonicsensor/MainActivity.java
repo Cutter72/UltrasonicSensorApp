@@ -24,7 +24,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
     private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536;
     public static MainActivity instance;
-    public static boolean isPrinting = false;
+    public static boolean isRecording = false;
     public static boolean isOpened = false;
 
     private List<UsbSerialDriver> availableDrivers;
@@ -54,12 +54,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        isPrinting = false;
+//        isRecording = false;
     }
 
     public void onClickOpenConnection(View view) {
         if (isOpened) {
-            isPrinting = false;
+            isRecording = false;
             consoleView.println("---onClickCloseConnection");
             closeConnection();
 
@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
                 btnOpenConnection.setText(R.string.open_connection);
                 btnOpenConnection.setBackgroundColor(btnBackgroundColor);
                 Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
-                btnAutoPrint.setText(R.string.start_auto_print);
+                btnAutoPrint.setText(R.string.start_recording);
                 btnAutoPrint.setBackgroundColor(btnBackgroundColor);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -156,16 +156,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void mik3yPrintData() {
-        List<Double> measurements = new ArrayList<>();
         byte[] readBuffer = new byte[282];
         if (port != null) {
             try {
-                port.read(readBuffer, 250);
+                port.read(readBuffer, 50);
 //                consoleView.println(Arrays.toString(readBuffer));
                 int[] decimals = new int[5];
                 int counter = 0;
                 int sensorUnits;
-                double average;
                 double distanceInCentimeters;
 //                consoleView.println();
                 for (byte b : readBuffer) {
@@ -181,8 +179,8 @@ public class MainActivity extends AppCompatActivity {
                     if (counter - 1 == 4) {
                         sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
                         distanceInCentimeters = sensorUnits * CENTIMETERS_UNIT_FACTOR;
-                        measurements.add(distanceInCentimeters);
-                        allMeasurements.add(new Measurement(distanceInCentimeters));
+                        Measurement measurement = new Measurement(distanceInCentimeters);
+                        allMeasurements.add(measurement);
                         updateCounterView();
 //                        consoleView.print(", SensorUnits: " + sensorUnits);
 //                        consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
@@ -191,15 +189,10 @@ public class MainActivity extends AppCompatActivity {
 //                        if (measurements.size() % 3 == 0 && measurements.size() > 0) {
 //                            consoleView.println();
 //                        }
+                        consoleView.println(String.format(Locale.getDefault(), "%s:  %f cm", measurement.getTime(), measurement.getCentimetersDistance()));
                     }
                 }
-                double sum = 0;
-                for (Double aDouble : measurements) {
-                    sum += aDouble;
-                }
-                average = sum / measurements.size();
-                consoleView.println(String.format(Locale.getDefault(), "Average from %s measurements: %f cm", measurements.size(), average));
-            } catch (IOException ex) {
+            } catch (IOException | NullPointerException ex) {
                 ex.printStackTrace();
 //                CrashReporter.logException(ex);
                 consoleView.println(ex);
@@ -224,35 +217,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickReset(View view) {
-        isPrinting = false;
+        isRecording = false;
         consoleView.clear();
         consoleView.println("---onClickReset");
         closeConnection();
         allMeasurements.clear();
         updateCounterView();
         consoleView.println("DATA CLEARED");
-        ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_auto_print);
+        ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_recording);
         view.setBackgroundColor(btnBackgroundColor);
     }
 
     @SuppressWarnings({"BusyWait"})
     public void onClickAutoPrint(View view) {
         consoleView.println("---onClickAutoPrint");
+        if (port != null) {
+            try {
+                port.purgeHwBuffers(true, true);
+            } catch (IOException | NullPointerException ex) {
+                ex.printStackTrace();
+                consoleView.println(ex);
+            }
+        }
         if (isOpened) {
-            if (isPrinting) {
-                consoleView.println("STOP READING");
-                isPrinting = false;
-                ((Button) view).setText(R.string.start_auto_print);
+            if (isRecording) {
+                consoleView.println("STOP RECORD");
+                isRecording = false;
+                ((Button) view).setText(R.string.start_recording);
                 view.setBackgroundColor(btnBackgroundColor);
             } else {
-                consoleView.println("START READING");
-                isPrinting = true;
+                consoleView.println("START RECORD");
+                isRecording = true;
                 Runnable delayedRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        while (isPrinting) {
+                        while (isRecording) {
                             try {
-                                Thread.sleep(250);
+                                Thread.sleep(50);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -275,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
                 new Thread(delayedRunnable).start();
-                ((Button) view).setText(R.string.stop_auto_print);
+                ((Button) view).setText(R.string.stop_recording);
                 view.setBackgroundColor(getColor(R.color.design_default_color_error));
             }
         } else {
