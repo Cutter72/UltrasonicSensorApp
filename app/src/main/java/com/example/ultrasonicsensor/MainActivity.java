@@ -15,14 +15,17 @@ import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+@SuppressWarnings("Convert2Lambda")
 public class MainActivity extends AppCompatActivity {
     private static final String mik3y = "mik3y: ";
     private static final String androidUart = "android_UART: ";
     private static final double unitFactorInCentimeters = 0.00859536;
+    public static MainActivity instance;
+    public static AtomicBoolean isRunning = new AtomicBoolean(false);
 
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
@@ -39,6 +42,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
+        instance = this;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isRunning.set(false);
     }
 
     public void onClickOpenConnection(View view) {
@@ -137,11 +147,11 @@ public class MainActivity extends AppCompatActivity {
         if (port != null) {
             try {
                 port.read(readBuffer, 50);
-                consoleView.println(mik3y + Arrays.toString(readBuffer));
+//                consoleView.println(mik3y + Arrays.toString(readBuffer));
                 int[] decimals = new int[5];
                 int counter = 0;
                 int sensorUnits;
-                double average = -1;
+                double average;
                 double distanceInCentimeters;
                 consoleView.println();
                 for (byte b : readBuffer) {
@@ -158,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
                         sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
                         distanceInCentimeters = sensorUnits * unitFactorInCentimeters;
                         measurements.add(distanceInCentimeters);
+                        allMeasurements.add(distanceInCentimeters);
                         consoleView.print(", SensorUnits: " + sensorUnits);
                         consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
                         counter = 0;
@@ -167,6 +178,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }
+                double sum = 0;
+                for (Double aDouble : measurements) {
+                    sum += aDouble;
+                }
+                average = sum / measurements.size();
                 consoleView.println(String.format(Locale.getDefault(), "Average from %s measurements: %f cm", measurements.size(), average));
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -194,5 +210,37 @@ public class MainActivity extends AppCompatActivity {
         onClickCloseConnection(null);
         allMeasurements.clear();
         consoleView.println("DATA CLEARED");
+    }
+
+    @SuppressWarnings("BusyWait")
+    public void onClickAutoPrint(View view) {
+        consoleView.println(mik3y + "onClickAutoPrint");
+        isRunning.set(true);
+        Runnable delayedRunnable = new Runnable() {
+            @Override
+            public void run() {
+                int i = 0;
+                while (i < 20 && isRunning.get()) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            MainActivity.instance.onClickPrintData(null);
+                        }
+                    });
+                    i++;
+                }
+                try {
+                    Thread.currentThread().join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        new Thread(delayedRunnable).start();
     }
 }

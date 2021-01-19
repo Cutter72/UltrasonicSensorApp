@@ -25,6 +25,15 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
+        android:id="@+id/autoPrint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="onClickAutoPrint"
+        android:text="Auto Print"
+        app:layout_constraintEnd_toStartOf="@+id/reset"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
         android:id="@+id/reset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
