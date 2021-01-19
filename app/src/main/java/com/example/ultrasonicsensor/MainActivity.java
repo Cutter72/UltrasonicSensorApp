@@ -11,7 +11,6 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.balsikandar.crashreporter.CrashReporter;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -37,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private ConsoleView consoleView;
     private Drawable btnBackgroundDrawable;
     private int btnBackgroundColor;
-    private List<Double> allMeasurements = new ArrayList<>();
+    private List<Measurement> allMeasurements = new ArrayList<>();
 
     @SuppressWarnings("ConstantConditions")
     @Override
@@ -93,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
                     btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
                 } catch (IOException ex) {
                     ex.printStackTrace();
-                    CrashReporter.logException(ex);
+//                    CrashReporter.logException(ex);
                     consoleView.println(ex);
                 }
             } else {
@@ -101,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            CrashReporter.logException(ex);
+//            CrashReporter.logException(ex);
             consoleView.println(ex.toString());
         }
     }
@@ -183,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                         sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
                         distanceInCentimeters = sensorUnits * CENTIMETERS_UNIT_FACTOR;
                         measurements.add(distanceInCentimeters);
-                        allMeasurements.add(distanceInCentimeters);
+                        allMeasurements.add(new Measurement(distanceInCentimeters));
                         updateCounterView();
 //                        consoleView.print(", SensorUnits: " + sensorUnits);
 //                        consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
@@ -202,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                 consoleView.println(String.format(Locale.getDefault(), "Average from %s measurements: %f cm", measurements.size(), average));
             } catch (IOException ex) {
                 ex.printStackTrace();
-                CrashReporter.logException(ex);
+//                CrashReporter.logException(ex);
                 consoleView.println(ex);
             }
         } else {
@@ -217,8 +216,8 @@ public class MainActivity extends AppCompatActivity {
     public void onClickCalcAvg(View view) {
         consoleView.println("---onClickCalcAvg");
         double sum = 0;
-        for (Double aDouble : allMeasurements) {
-            sum += aDouble;
+        for (Measurement measurement : allMeasurements) {
+            sum += measurement.getCentimetersDistance();
         }
         double average = sum / allMeasurements.size();
         consoleView.println(String.format(Locale.getDefault(), "Average from all %s measurements: %f cm", allMeasurements.size(), average));
