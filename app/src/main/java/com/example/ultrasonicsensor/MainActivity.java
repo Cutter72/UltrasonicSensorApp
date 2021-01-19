@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536;
     public static MainActivity instance;
     public static boolean isRunning = false;
+    public static boolean isOpened = false;
 
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
@@ -57,8 +58,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickOpenConnection(View view) {
-        consoleView.println("---onClickOpenConnection");
-        mik3yConnection();
+        if (isOpened) {
+            consoleView.println("---onClickCloseConnection");
+            closeConnection();
+
+        } else {
+            consoleView.println("---onClickOpenConnection");
+            mik3yConnection();
+        }
     }
 
     public void onClickPrintData(View view) {
@@ -78,6 +85,10 @@ public class MainActivity extends AppCompatActivity {
                     port.open(connection);
                     port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
                     consoleView.println("PORT OPEN");
+                    isOpened = true;
+                    Button btnOpenConnection = findViewById(R.id.openConnection);
+                    btnOpenConnection.setText(R.string.close_connection);
+                    btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
                 } catch (IOException ex) {
                     ex.printStackTrace();
                     CrashReporter.logException(ex);
@@ -106,13 +117,14 @@ public class MainActivity extends AppCompatActivity {
         consoleView.println("CONNECTION OPEN");
     }
 
-    public void onClickCloseConnection(View view) {
-        if (view != null) {
-            consoleView.println("---onClickCloseConnection");
-        }
+    private void closeConnection() {
         if (connection != null) {
             try {
                 port.close();
+                isOpened = false;
+                Button btnOpenConnection = findViewById(R.id.openConnection);
+                btnOpenConnection.setText(R.string.open_connection);
+                btnOpenConnection.setBackgroundColor(btnBackgroundColor);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -205,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
     public void onClickReset(View view) {
         consoleView.clear();
         consoleView.println("---onClickReset");
-        onClickCloseConnection(null);
+        closeConnection();
         allMeasurements.clear();
         consoleView.println("DATA CLEARED");
         isRunning = false;
