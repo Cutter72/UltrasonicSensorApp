@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @SuppressWarnings("Convert2Lambda")
 public class MainActivity extends AppCompatActivity {
@@ -26,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String androidUart = "android_UART: ";
     private static final double unitFactorInCentimeters = 0.00859536;
     public static MainActivity instance;
-    public static AtomicBoolean isRunning = new AtomicBoolean(false);
+    public static boolean isRunning = false;
 
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
@@ -49,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        isRunning.set(false);
+        isRunning = false;
     }
 
     public void onClickOpenConnection(View view) {
@@ -210,24 +209,24 @@ public class MainActivity extends AppCompatActivity {
         onClickCloseConnection(null);
         allMeasurements.clear();
         consoleView.println("DATA CLEARED");
-        isRunning.set(false);
+        isRunning = false;
         ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_auto_print);
     }
 
     @SuppressWarnings("BusyWait")
     public void onClickAutoPrint(View view) {
         consoleView.println("onClickAutoPrint");
-        if (isRunning.get()) {
+        if (isRunning) {
             consoleView.println("STOP READING");
-            isRunning.set(false);
+            isRunning = false;
             ((Button) view).setText(R.string.start_auto_print);
         } else {
             consoleView.println("START READING");
-            isRunning.set(true);
+            isRunning = true;
             Runnable delayedRunnable = new Runnable() {
                 @Override
                 public void run() {
-                    while (isRunning.get()) {
+                    while (isRunning) {
                         try {
                             Thread.sleep(250);
                         } catch (InterruptedException e) {
