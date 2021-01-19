@@ -7,6 +7,7 @@ import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -24,7 +25,7 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
     private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536;
     public static MainActivity instance;
-    public static boolean isRunning = false;
+    public static boolean isPrinting = false;
     public static boolean isOpened = false;
 
     private List<UsbSerialDriver> availableDrivers;
@@ -54,11 +55,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        isRunning = false;
+        isPrinting = false;
     }
 
     public void onClickOpenConnection(View view) {
         if (isOpened) {
+            isPrinting = false;
             consoleView.println("---onClickCloseConnection");
             closeConnection();
 
@@ -125,6 +127,9 @@ public class MainActivity extends AppCompatActivity {
                 Button btnOpenConnection = findViewById(R.id.openConnection);
                 btnOpenConnection.setText(R.string.open_connection);
                 btnOpenConnection.setBackgroundColor(btnBackgroundColor);
+                Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
+                btnAutoPrint.setText(R.string.start_auto_print);
+                btnAutoPrint.setBackgroundColor(btnBackgroundColor);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -179,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
                         distanceInCentimeters = sensorUnits * CENTIMETERS_UNIT_FACTOR;
                         measurements.add(distanceInCentimeters);
                         allMeasurements.add(distanceInCentimeters);
+                        updateCounterView();
 //                        consoleView.print(", SensorUnits: " + sensorUnits);
 //                        consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
                         counter = 0;
@@ -204,6 +210,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void updateCounterView() {
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allMeasurements.size()));
+    }
+
     public void onClickCalcAvg(View view) {
         consoleView.println("---onClickCalcAvg");
         double sum = 0;
@@ -215,12 +225,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickReset(View view) {
+        isPrinting = false;
         consoleView.clear();
         consoleView.println("---onClickReset");
         closeConnection();
         allMeasurements.clear();
+        updateCounterView();
         consoleView.println("DATA CLEARED");
-        isRunning = false;
         ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_auto_print);
         view.setBackgroundColor(btnBackgroundColor);
     }
@@ -228,44 +239,48 @@ public class MainActivity extends AppCompatActivity {
     @SuppressWarnings({"BusyWait"})
     public void onClickAutoPrint(View view) {
         consoleView.println("---onClickAutoPrint");
-        if (isRunning) {
-            consoleView.println("STOP READING");
-            isRunning = false;
-            ((Button) view).setText(R.string.start_auto_print);
-            view.setBackgroundColor(btnBackgroundColor);
-        } else {
-            consoleView.println("START READING");
-            isRunning = true;
-            Runnable delayedRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    while (isRunning) {
+        if (isOpened) {
+            if (isPrinting) {
+                consoleView.println("STOP READING");
+                isPrinting = false;
+                ((Button) view).setText(R.string.start_auto_print);
+                view.setBackgroundColor(btnBackgroundColor);
+            } else {
+                consoleView.println("START READING");
+                isPrinting = true;
+                Runnable delayedRunnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        while (isPrinting) {
+                            try {
+                                Thread.sleep(250);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    MainActivity.instance.onClickPrintData(null);
+                                    if (consoleView.getSize() > 99) {
+                                        consoleView.clear();
+                                        consoleView.println("CONSOLE CLEARED");
+                                    }
+                                }
+                            });
+                        }
                         try {
-                            Thread.sleep(250);
+                            Thread.currentThread().join();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                MainActivity.instance.onClickPrintData(null);
-                                if (consoleView.getSize() > 99) {
-                                    consoleView.clear();
-                                    consoleView.println("CONSOLE CLEARED");
-                                }
-                            }
-                        });
                     }
-                    try {
-                        Thread.currentThread().join();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            };
-            new Thread(delayedRunnable).start();
-            ((Button) view).setText(R.string.stop_auto_print);
-            view.setBackgroundColor(getColor(R.color.design_default_color_error));
+                };
+                new Thread(delayedRunnable).start();
+                ((Button) view).setText(R.string.stop_auto_print);
+                view.setBackgroundColor(getColor(R.color.design_default_color_error));
+            }
+        } else {
+            consoleView.println("CONNECTION IS NOT OPEN");
         }
     }
 

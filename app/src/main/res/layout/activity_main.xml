@@ -82,4 +82,24 @@
             android:orientation="vertical" />
     </ScrollView>
 
+    <TextView
+        android:id="@+id/measurementsLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="@string/measurements"
+        app:layout_constraintBottom_toBottomOf="@+id/openConnection"
+        app:layout_constraintStart_toEndOf="@+id/openConnection"
+        app:layout_constraintTop_toTopOf="@+id/openConnection" />
+
+    <TextView
+        android:id="@+id/measurementsCounter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="@string/zero"
+        app:layout_constraintBottom_toBottomOf="@+id/measurementsLabel"
+        app:layout_constraintStart_toEndOf="@+id/measurementsLabel"
+        app:layout_constraintTop_toTopOf="@+id/measurementsLabel" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

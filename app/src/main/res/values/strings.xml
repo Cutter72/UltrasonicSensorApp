@@ -8,4 +8,6 @@
     <string name="clear_console">Clear Console</string>
     <string name="calc_avg">Calc Avg</string>
     <string name="print_data">Print Data</string>
+    <string name="measurements">Measurements:</string>
+    <string name="zero">0</string>
 </resources>
