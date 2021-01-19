@@ -68,4 +68,8 @@ public class ConsoleView {
     public void clear() {
         linearLayout.removeAllViews();
     }
+
+    public int getSize() {
+        return linearLayout.getChildCount();
+    }
 }

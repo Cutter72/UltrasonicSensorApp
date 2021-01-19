@@ -5,6 +5,7 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -68,7 +69,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickPrintData(View view) {
-        consoleView.println("---onClickDataPrint");
         mik3yPrintData();
     }
 
@@ -146,14 +146,14 @@ public class MainActivity extends AppCompatActivity {
         byte[] readBuffer = new byte[282];
         if (port != null) {
             try {
-                port.read(readBuffer, 50);
+                port.read(readBuffer, 250);
 //                consoleView.println(mik3y + Arrays.toString(readBuffer));
                 int[] decimals = new int[5];
                 int counter = 0;
                 int sensorUnits;
                 double average;
                 double distanceInCentimeters;
-                consoleView.println();
+//                consoleView.println();
                 for (byte b : readBuffer) {
 //                    consoleView.println(String.format(Locale.getDefault(), "counter: %s, b: %s", counter, b));
                     if (b < 48 || b > 57 || counter > 4) {
@@ -169,13 +169,13 @@ public class MainActivity extends AppCompatActivity {
                         distanceInCentimeters = sensorUnits * unitFactorInCentimeters;
                         measurements.add(distanceInCentimeters);
                         allMeasurements.add(distanceInCentimeters);
-                        consoleView.print(", SensorUnits: " + sensorUnits);
-                        consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
+//                        consoleView.print(", SensorUnits: " + sensorUnits);
+//                        consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
                         counter = 0;
                         decimals = new int[5];
-                        if (measurements.size() % 3 == 0 && measurements.size() > 0) {
-                            consoleView.println();
-                        }
+//                        if (measurements.size() % 3 == 0 && measurements.size() > 0) {
+//                            consoleView.println();
+//                        }
                     }
                 }
                 double sum = 0;
@@ -210,37 +210,49 @@ public class MainActivity extends AppCompatActivity {
         onClickCloseConnection(null);
         allMeasurements.clear();
         consoleView.println("DATA CLEARED");
+        isRunning.set(false);
+        ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_auto_print);
     }
 
     @SuppressWarnings("BusyWait")
     public void onClickAutoPrint(View view) {
-        consoleView.println(mik3y + "onClickAutoPrint");
-        isRunning.set(true);
-        Runnable delayedRunnable = new Runnable() {
-            @Override
-            public void run() {
-                int i = 0;
-                while (i < 20 && isRunning.get()) {
+        consoleView.println("onClickAutoPrint");
+        if (isRunning.get()) {
+            consoleView.println("STOP READING");
+            isRunning.set(false);
+            ((Button) view).setText(R.string.start_auto_print);
+        } else {
+            consoleView.println("START READING");
+            isRunning.set(true);
+            Runnable delayedRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    while (isRunning.get()) {
+                        try {
+                            Thread.sleep(250);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                MainActivity.instance.onClickPrintData(null);
+                                if (consoleView.getSize() > 99) {
+                                    consoleView.clear();
+                                    consoleView.println("CONSOLE CLEARED");
+                                }
+                            }
+                        });
+                    }
                     try {
-                        Thread.sleep(500);
+                        Thread.currentThread().join();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            MainActivity.instance.onClickPrintData(null);
-                        }
-                    });
-                    i++;
                 }
-                try {
-                    Thread.currentThread().join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-        new Thread(delayedRunnable).start();
+            };
+            new Thread(delayedRunnable).start();
+            ((Button) view).setText(R.string.stop_auto_print);
+        }
     }
 }

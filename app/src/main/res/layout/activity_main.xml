@@ -19,17 +19,19 @@
         android:id="@+id/closeConnection"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
         android:onClick="onClickCloseConnection"
         android:text="Close Conn."
         app:layout_constraintStart_toEndOf="@+id/openConnection"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/autoPrint"
+        android:id="@+id/btnAutoPrint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="2dp"
         android:onClick="onClickAutoPrint"
-        android:text="Auto Print"
+        android:text="@string/start_auto_print"
         app:layout_constraintEnd_toStartOf="@+id/reset"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -37,6 +39,7 @@
         android:id="@+id/reset"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="2dp"
         android:onClick="onClickReset"
         android:text="Reset"
         app:layout_constraintEnd_toStartOf="@+id/calcAverageData"
@@ -46,6 +49,7 @@
         android:id="@+id/calcAverageData"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="2dp"
         android:onClick="onClickCalcAvg"
         android:text="Calc. avg."
         app:layout_constraintEnd_toStartOf="@+id/printData"
