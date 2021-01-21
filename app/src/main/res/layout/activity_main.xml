@@ -40,16 +40,16 @@
         android:layout_marginEnd="2dp"
         android:onClick="onClickClearConsole"
         android:text="@string/clear_console"
-        app:layout_constraintEnd_toStartOf="@+id/calcAverageData"
+        app:layout_constraintEnd_toStartOf="@+id/btnRawData"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/calcAverageData"
+        android:id="@+id/btnRawData"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="2dp"
-        android:onClick="onClickCalcAvg"
-        android:text="@string/calc_avg"
+        android:onClick="onClickRawDataLogEnabled"
+        android:text="@string/show_raw_data"
         app:layout_constraintEnd_toStartOf="@+id/printData"
         app:layout_constraintTop_toTopOf="parent" />
 

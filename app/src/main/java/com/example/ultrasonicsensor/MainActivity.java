@@ -17,8 +17,8 @@ import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
 @SuppressWarnings("Convert2Lambda")
 public class MainActivity extends AppCompatActivity {
@@ -37,6 +37,12 @@ public class MainActivity extends AppCompatActivity {
     private Drawable btnBackgroundDrawable;
     private int btnBackgroundColor;
     private List<Measurement> allMeasurements = new ArrayList<>();
+    private List<Impacts> impacts = new ArrayList<>();
+    private double[] measurementsBuffer = new double[22];
+    private int measurementsBufferCursor = 0;
+    private final int timeOutMillis = 10;
+    private final int maxConsoleLines = 999;
+    private boolean isRawDataLogEnabled = false;
 
     @SuppressWarnings("ConstantConditions")
     @Override
@@ -156,40 +162,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void mik3yPrintData() {
-        byte[] readBuffer = new byte[282];
+        byte[] readBuffer = new byte[39];
         if (port != null) {
             try {
-                port.read(readBuffer, 50);
-//                consoleView.println(Arrays.toString(readBuffer));
+                port.read(readBuffer, timeOutMillis);
+                if (isRawDataLogEnabled) {
+                    consoleView.println(Arrays.toString(readBuffer));
+                }
                 int[] decimals = new int[5];
                 int counter = 0;
                 int sensorUnits;
                 double distanceInCentimeters;
-//                consoleView.println();
                 for (byte b : readBuffer) {
-//                    consoleView.println(String.format(Locale.getDefault(), "counter: %s, b: %s", counter, b));
+                    if (b == 0) {
+                        return;
+                    }
                     if (b < 48 || b > 57 || counter > 4) {
                         counter = 0;
                         decimals = new int[5];
                     } else {
                         decimals[counter] = b - 48;
-//                        consoleView.println(String.format(Locale.getDefault(), "counter: %s, b: %s, decimal: %s", counter, b, decimals[counter]));
                         counter++;
                     }
                     if (counter - 1 == 4) {
                         sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
-                        distanceInCentimeters = sensorUnits * CENTIMETERS_UNIT_FACTOR;
+                        distanceInCentimeters = Math.round(sensorUnits * CENTIMETERS_UNIT_FACTOR * 100) / 100.0;
                         Measurement measurement = new Measurement(distanceInCentimeters);
                         allMeasurements.add(measurement);
-                        updateCounterView();
-//                        consoleView.print(", SensorUnits: " + sensorUnits);
-//                        consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
+                        measurementsBuffer[measurementsBufferCursor] = (distanceInCentimeters);
+                        measurementsBufferCursor++;
                         counter = 0;
                         decimals = new int[5];
-//                        if (measurements.size() % 3 == 0 && measurements.size() > 0) {
-//                            consoleView.println();
-//                        }
-                        consoleView.println(String.format(Locale.getDefault(), "%s:  %f cm", measurement.getTime(), measurement.getCentimetersDistance()));
+                    }
+                    if (measurementsBufferCursor >= measurementsBuffer.length) {
+                        consoleView.println(Arrays.toString(measurementsBuffer));
+                        measurementsBufferCursor = 0;
+                        measurementsBuffer = new double[measurementsBuffer.length];
+                        updateCounterView();
                     }
                 }
             } catch (IOException | NullPointerException ex) {
@@ -202,18 +211,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void countImpacts(Measurement measurement) {
+        double difference = allMeasurements.get(allMeasurements.size() - 1).getCentimetersDistance() - measurement.getCentimetersDistance();
+    }
+
     private void updateCounterView() {
         ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allMeasurements.size()));
     }
 
-    public void onClickCalcAvg(View view) {
-        consoleView.println("---onClickCalcAvg");
-        double sum = 0;
-        for (Measurement measurement : allMeasurements) {
-            sum += measurement.getCentimetersDistance();
+    public void onClickRawDataLogEnabled(View view) {
+        consoleView.println("---onClickRawDataShowEnabled");
+        isRawDataLogEnabled = !isRawDataLogEnabled;
+        if (isRawDataLogEnabled) {
+            ((Button) findViewById(R.id.btnRawData)).setText(R.string.hide_raw_data);
+        } else {
+            ((Button) findViewById(R.id.btnRawData)).setText(R.string.show_raw_data);
         }
-        double average = sum / allMeasurements.size();
-        consoleView.println(String.format(Locale.getDefault(), "Average from all %s measurements: %f cm", allMeasurements.size(), average));
     }
 
     public void onClickReset(View view) {
@@ -253,7 +266,7 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         while (isRecording) {
                             try {
-                                Thread.sleep(50);
+                                Thread.sleep(timeOutMillis);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -261,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
                                 @Override
                                 public void run() {
                                     MainActivity.instance.onClickPrintData(null);
-                                    if (consoleView.getSize() > 99) {
+                                    if (consoleView.getSize() > maxConsoleLines) {
                                         consoleView.clear();
                                         consoleView.println("CONSOLE CLEARED");
                                     }

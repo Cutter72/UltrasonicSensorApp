@@ -10,4 +10,6 @@
     <string name="print_data">Print Data</string>
     <string name="measurements">Measurements:</string>
     <string name="zero">0</string>
+    <string name="show_raw_data">Show raw data</string>
+    <string name="hide_raw_data">Hide raw data</string>
 </resources>
