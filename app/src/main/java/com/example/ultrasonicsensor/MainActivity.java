@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -46,21 +47,44 @@ public class MainActivity extends AppCompatActivity {
     private List<Impacts> impacts = new ArrayList<>();
     private double[] measurementsBuffer = new double[22];
     private int measurementsBufferCursor = 0;
-    private final int timeOutMillis = 10;
+    private int bufferTimeOut = 20;
     private final int maxConsoleLines = 999;
     private boolean isRawDataLogEnabled = false;
 
-    @SuppressWarnings("ConstantConditions")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initializeLayout();
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private void initializeLayout() {
+        instance = this;
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
-        instance = this;
         Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
         btnBackgroundDrawable = btnAutoPrint.getBackground();
         btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+        ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
+        SeekBar intervalSeekBar = findViewById(R.id.bufferSeekBar);
+        intervalSeekBar.setProgress((bufferTimeOut - 10) / 5);
+        intervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(seekBar.getProgress() * 5 + 10));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                bufferTimeOut = seekBar.getProgress() * 5 + 10;
+                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
+            }
+        });
     }
 
     @Override
@@ -214,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
         byte[] readBuffer = new byte[42];
         if (port != null) {
             try {
-                port.read(readBuffer, timeOutMillis);
+                port.read(readBuffer, bufferTimeOut);
                 if (isRawDataLogEnabled) {
                     consoleView.println(Arrays.toString(readBuffer));
                 }
@@ -315,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         while (isRecording) {
                             try {
-                                Thread.sleep(timeOutMillis);
+                                Thread.sleep(bufferTimeOut);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }

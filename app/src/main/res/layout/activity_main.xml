@@ -102,4 +102,37 @@
         app:layout_constraintStart_toEndOf="@+id/measurementsLabel"
         app:layout_constraintTop_toTopOf="@+id/measurementsLabel" />
 
+    <TextView
+        android:id="@+id/bufferTimeOutLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="@string/base_interval_label"
+        app:layout_constraintBottom_toBottomOf="@+id/openConnection"
+        app:layout_constraintStart_toEndOf="@+id/measurementsCounter"
+        app:layout_constraintTop_toTopOf="@+id/openConnection" />
+
+    <TextView
+        android:id="@+id/bufferTimeOut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="@string/zero"
+        app:layout_constraintBottom_toBottomOf="@+id/measurementsLabel"
+        app:layout_constraintStart_toEndOf="@+id/bufferTimeOutLabel"
+        app:layout_constraintTop_toTopOf="@+id/measurementsLabel" />
+
+    <SeekBar
+        android:id="@+id/bufferSeekBar"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="24dp"
+        android:max="8"
+        android:progress="2"
+        app:layout_constraintBottom_toTopOf="@+id/scrollView"
+        app:layout_constraintEnd_toStartOf="@+id/btnAutoPrint"
+        app:layout_constraintStart_toEndOf="@+id/bufferTimeOut"
+        app:layout_constraintTop_toTopOf="@+id/btnAutoPrint" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
