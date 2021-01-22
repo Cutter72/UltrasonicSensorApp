@@ -107,7 +107,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:text="@string/base_interval_label"
+        android:text="@string/buffer_timeout"
         app:layout_constraintBottom_toBottomOf="@+id/openConnection"
         app:layout_constraintStart_toEndOf="@+id/measurementsCounter"
         app:layout_constraintTop_toTopOf="@+id/openConnection" />

@@ -13,5 +13,5 @@
     <string name="show_raw_data">Show raw data</string>
     <string name="hide_raw_data">Hide raw data</string>
     <string name="save_data_to_csv">Save data to CSV</string>
-    <string name="base_interval_label">Base interval [ms]</string>
+    <string name="buffer_timeout">Buffer timeout [ms]</string>
 </resources>
