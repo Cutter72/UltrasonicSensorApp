@@ -12,4 +12,5 @@
     <string name="zero">0</string>
     <string name="show_raw_data">Show raw data</string>
     <string name="hide_raw_data">Hide raw data</string>
+    <string name="save_data_to_csv">Save data to CSV</string>
 </resources>

@@ -22,7 +22,7 @@
         android:onClick="onClickAutoPrint"
         android:text="@string/start_recording"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/printData" />
+        app:layout_constraintTop_toBottomOf="@+id/saveDataToCsv" />
 
     <Button
         android:id="@+id/reset"
@@ -50,15 +50,15 @@
         android:layout_marginEnd="2dp"
         android:onClick="onClickRawDataLogEnabled"
         android:text="@string/show_raw_data"
-        app:layout_constraintEnd_toStartOf="@+id/printData"
+        app:layout_constraintEnd_toStartOf="@+id/saveDataToCsv"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/printData"
+        android:id="@+id/saveDataToCsv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="onClickPrintData"
-        android:text="@string/print_data"
+        android:onClick="onClickSaveDataToCsv"
+        android:text="@string/save_data_to_csv"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

@@ -1,20 +1,26 @@
 package com.example.ultrasonicsensor;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,18 +74,61 @@ public class MainActivity extends AppCompatActivity {
             isRecording = false;
             consoleView.println("---onClickCloseConnection");
             closeConnection();
-
         } else {
             consoleView.println("---onClickOpenConnection");
             mik3yConnection();
         }
     }
 
-    public void onClickPrintData(View view) {
-        if (view != null) {
-            consoleView.println("---onClickPrintData");
+    public void onClickSaveDataToCsv(View view) {
+        if (allMeasurements.size() == 0) {
+            consoleView.println("NO MEASUREMENTS DATA.");
+        } else {
+            requestPermissions();
         }
-        mik3yPrintData();
+    }
+
+    private void createDataFile() {
+        File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
+        FileOperations.prepareDirectory(directory.getAbsolutePath());
+        File outputFile = new File(directory.getAbsolutePath() + "/measurements.csv");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < allMeasurements.size(); i++) {
+            Measurement measurement = allMeasurements.get(i);
+            sb.append(i + 1);
+            sb.append(",");
+            sb.append(measurement.getTime().getTime());
+            sb.append(",");
+            sb.append(measurement.getCentimetersDistance());
+            sb.append("\n");
+        }
+        FileOperations.writeToFile(outputFile, sb.toString());
+        consoleView.println(String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
+    }
+
+    private static final int PERMISSION_ID = 1029;
+
+    private void requestPermissions() {
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                },
+                PERMISSION_ID
+        );
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        System.out.println("onRequestPermissionsResult");
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_ID) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Granted.
+                System.out.println("Permissions granted. WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE");
+                createDataFile();
+            }
+        }
     }
 
     private void mik3yConnection() {
@@ -162,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void mik3yPrintData() {
-        byte[] readBuffer = new byte[39];
+        byte[] readBuffer = new byte[42];
         if (port != null) {
             try {
                 port.read(readBuffer, timeOutMillis);
@@ -273,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    MainActivity.instance.onClickPrintData(null);
+                                    MainActivity.instance.mik3yPrintData();
                                     if (consoleView.getSize() > maxConsoleLines) {
                                         consoleView.clear();
                                         consoleView.println("CONSOLE CLEARED");
