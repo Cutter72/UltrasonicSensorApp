@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.balsikandar.crashreporter.CrashReporter;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -25,6 +26,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 @SuppressWarnings("Convert2Lambda")
@@ -50,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
     private int bufferTimeOut = 20;
     private final int maxConsoleLines = 999;
     private boolean isRawDataLogEnabled = false;
+    private byte[] readBuffer = new byte[42];
+    private List<Byte> rawMeasurementBuffer = Collections.synchronizedList(new LinkedList<>());
+    private final Byte CR = (byte) 13;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,11 +74,11 @@ public class MainActivity extends AppCompatActivity {
         btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
         ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
         SeekBar intervalSeekBar = findViewById(R.id.bufferSeekBar);
-        intervalSeekBar.setProgress((bufferTimeOut - 10) / 5);
+        intervalSeekBar.setProgress((bufferTimeOut - 10) / 10);
         intervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(seekBar.getProgress() * 5 + 10));
+                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(seekBar.getProgress() * 10 + 10));
             }
 
             @Override
@@ -81,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                bufferTimeOut = seekBar.getProgress() * 5 + 10;
+                bufferTimeOut = seekBar.getProgress() * 10 + 10;
                 ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
             }
         });
@@ -234,6 +240,32 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void bufferRead() {
+        readBuffer = new byte[42];
+        if (port != null) {
+            try {
+                port.read(readBuffer, bufferTimeOut);
+            } catch (IOException | NullPointerException ex) {
+                ex.printStackTrace();
+                CrashReporter.logException(ex);
+            }
+        } else {
+            CrashReporter.logException(new RuntimeException("port == null"));
+        }
+    }
+
+    private void writeDataToMeasurementBuffer() {
+        for (int i = 0; i < readBuffer.length; i++) {
+            byte e = readBuffer[i];
+            if (e != 0 && !rawMeasurementBuffer.contains(CR)) {
+                rawMeasurementBuffer.add(readBuffer[i]);
+                if (rawMeasurementBuffer.size() > 6) {
+                    //todo writeDataToMeasurementBuffer
+                }
+            }
+        }
+    }
+
     private void mik3yPrintData() {
         byte[] readBuffer = new byte[42];
         if (port != null) {
@@ -258,6 +290,9 @@ public class MainActivity extends AppCompatActivity {
                         counter++;
                     }
                     if (counter - 1 == 4) {
+                        if (isRawDataLogEnabled) {
+                            consoleView.print(Arrays.toString(decimals));
+                        }
                         sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
                         distanceInCentimeters = Math.round(sensorUnits * CENTIMETERS_UNIT_FACTOR * 100) / 100.0;
                         Measurement measurement = new Measurement(distanceInCentimeters);
