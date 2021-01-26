@@ -37,12 +37,14 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isRecording = false;
     public static boolean isOpened = false;
 
+    //RS232 connection
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
     private UsbSerialDriver driver;
     private UsbDeviceConnection connection;
     private UsbSerialPort port;
 
+    //read and print data in the console view
     private ConsoleView consoleView;
     private int btnBackgroundColor;
     private final List<Measurement> allMeasurements = new ArrayList<>();
@@ -52,6 +54,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean isRawDataLogEnabled = false;
     private byte[] readBuffer = new byte[bufferSize];
     private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
+
+    //count impacts
+    private final double minDifference = 0.4;
+    private final int averageMeasurementsToTake = 3;
+    private int impacts = 0;
+    private int previousImpactTimestamp = 0;
+    private final int minTimeIntervalBetweenImpactMillis = 1000; //50ms => 20 impacts / second
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -212,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
                 btnAutoPrint.setText(R.string.start_recording);
                 btnAutoPrint.setBackgroundColor(btnBackgroundColor);
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
             connection.close();
         }
@@ -265,13 +274,11 @@ public class MainActivity extends AppCompatActivity {
                 if (e == 13) {
                     if (rawSensorUnitsBuffer.size() == 5) {
                         mergeSensorRawDataIntoCentimeterMeasurement();
+                        if (isImpactFound()) {
+                            runOnUiThread(this::updateImpactsCounterView);
+                        }
                         if ((allMeasurements.size() % 22 == 0) ^ allMeasurements.size() == 0) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    printLatest22MeasurementsAndUpdateCounter();
-                                }
-                            });
+                            runOnUiThread(this::printLatest22MeasurementsAndUpdateCounter);
                         }
                     }
                     rawSensorUnitsBuffer = new LinkedList<>();
@@ -283,6 +290,29 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
+    }
+
+    private boolean isImpactFound() {
+        if (allMeasurements.size() > averageMeasurementsToTake) {
+            double sum = 0;
+            for (int i = allMeasurements.size() - averageMeasurementsToTake - 1; i < allMeasurements.size() - 1; i++) {
+                sum += allMeasurements.get(i).getCentimetersDistance();
+            }
+            double averageFromPreviousXMeasurements = sum / averageMeasurementsToTake;
+            double differenceToCheck = averageFromPreviousXMeasurements - allMeasurements.get(allMeasurements.size() - 1).getCentimetersDistance();
+            if (differenceToCheck > minDifference) {
+                long timeDifference = System.currentTimeMillis() - previousImpactTimestamp;
+                if (timeDifference >= minTimeIntervalBetweenImpactMillis) {
+                    impacts++;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void updateImpactsCounterView() {
+        ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
     }
 
     private void mergeSensorRawDataIntoCentimeterMeasurement() {
@@ -307,12 +337,12 @@ public class MainActivity extends AppCompatActivity {
                 rawSensorUnitsBuffer.get(4);
     }
 
-    private void updateCounterView() {
+    private void updateMeasurementCounterView() {
         ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allMeasurements.size()));
     }
 
     private void printLatest22MeasurementsAndUpdateCounter() {
-        updateCounterView();
+        updateMeasurementCounterView();
         if (isRawDataLogEnabled) {
             consoleView.println("allMeasurements.size(): " + allMeasurements.size());
         }
@@ -339,7 +369,9 @@ public class MainActivity extends AppCompatActivity {
         closeConnection();
         allMeasurements.clear();
         rawSensorUnitsBuffer.clear();
-        updateCounterView();
+        impacts = 0;
+        updateMeasurementCounterView();
+        updateImpactsCounterView();
         consoleView.println("DATA CLEARED");
         ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_recording);
         view.setBackgroundColor(btnBackgroundColor);

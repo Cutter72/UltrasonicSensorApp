@@ -14,4 +14,5 @@
     <string name="hide_raw_data">Hide raw data</string>
     <string name="save_data_to_csv">Save data to CSV</string>
     <string name="buffer_timeout">Buffer timeout [ms]</string>
+    <string name="impacts">Impacts</string>
 </resources>
