@@ -30,9 +30,9 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-@SuppressWarnings("Convert2Lambda")
+@SuppressWarnings({"Convert2Lambda", "Anonymous2MethodRef"})
 public class MainActivity extends AppCompatActivity {
-    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536;
+    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value from ToughSonic Sensor 12 data sheet
     public static MainActivity instance;
     public static boolean isRecording = false;
     public static boolean isOpened = false;
@@ -44,18 +44,14 @@ public class MainActivity extends AppCompatActivity {
     private UsbSerialPort port;
 
     private ConsoleView consoleView;
-    private Drawable btnBackgroundDrawable;
     private int btnBackgroundColor;
-    private List<Measurement> allMeasurements = new ArrayList<>();
-    private List<Impacts> impacts = new ArrayList<>();
-    private double[] measurementsBuffer = new double[22];
-    private int measurementsBufferCursor = 0;
-    private int bufferTimeOut = 20;
+    private final List<Measurement> allMeasurements = new ArrayList<>();
+    private int bufferTimeOut = 100;
+    private final int bufferSize = 99;
     private final int maxConsoleLines = 999;
     private boolean isRawDataLogEnabled = false;
-    private byte[] readBuffer = new byte[42];
-    private List<Byte> rawMeasurementBuffer = Collections.synchronizedList(new LinkedList<>());
-    private final Byte CR = (byte) 13;
+    private byte[] readBuffer = new byte[bufferSize];
+    private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,12 +66,13 @@ public class MainActivity extends AppCompatActivity {
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
         Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
-        btnBackgroundDrawable = btnAutoPrint.getBackground();
+        Drawable btnBackgroundDrawable = btnAutoPrint.getBackground();
         btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
         ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
-        SeekBar intervalSeekBar = findViewById(R.id.bufferSeekBar);
-        intervalSeekBar.setProgress((bufferTimeOut - 10) / 10);
-        intervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        SeekBar bufferTimeoutSeekBar = findViewById(R.id.bufferTimeoutSeekBar);
+        bufferTimeoutSeekBar.setEnabled(false);
+        bufferTimeoutSeekBar.setProgress((bufferTimeOut - 10) / 10);
+        bufferTimeoutSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(seekBar.getProgress() * 10 + 10));
@@ -121,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
     private void createDataFile() {
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
         FileOperations.prepareDirectory(directory.getAbsolutePath());
-        File outputFile = new File(directory.getAbsolutePath() + "/measurements.csv");
+        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%smmnts%sbuff.csv", allMeasurements.size(), bufferTimeOut));
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < allMeasurements.size(); i++) {
             Measurement measurement = allMeasurements.get(i);
@@ -241,10 +238,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bufferRead() {
-        readBuffer = new byte[42];
+        readBuffer = new byte[bufferSize];
         if (port != null) {
             try {
                 port.read(readBuffer, bufferTimeOut);
+                if (isRawDataLogEnabled) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            consoleView.println(Arrays.toString(readBuffer));
+                        }
+                    });
+                }
             } catch (IOException | NullPointerException ex) {
                 ex.printStackTrace();
                 CrashReporter.logException(ex);
@@ -254,77 +259,67 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void writeDataToMeasurementBuffer() {
-        for (int i = 0; i < readBuffer.length; i++) {
-            byte e = readBuffer[i];
-            if (e != 0 && !rawMeasurementBuffer.contains(CR)) {
-                rawMeasurementBuffer.add(readBuffer[i]);
-                if (rawMeasurementBuffer.size() > 6) {
-                    //todo writeDataToMeasurementBuffer
-                }
-            }
-        }
-    }
-
-    private void mik3yPrintData() {
-        byte[] readBuffer = new byte[42];
-        if (port != null) {
-            try {
-                port.read(readBuffer, bufferTimeOut);
-                if (isRawDataLogEnabled) {
-                    consoleView.println(Arrays.toString(readBuffer));
-                }
-                int[] decimals = new int[5];
-                int counter = 0;
-                int sensorUnits;
-                double distanceInCentimeters;
-                for (byte b : readBuffer) {
-                    if (b == 0) {
-                        return;
-                    }
-                    if (b < 48 || b > 57 || counter > 4) {
-                        counter = 0;
-                        decimals = new int[5];
-                    } else {
-                        decimals[counter] = b - 48;
-                        counter++;
-                    }
-                    if (counter - 1 == 4) {
-                        if (isRawDataLogEnabled) {
-                            consoleView.print(Arrays.toString(decimals));
+    private void proceedInputDataFromSensor() {
+        for (byte e : readBuffer) {
+            if (e != 0) {
+                if (e == 13) {
+                    if (rawSensorUnitsBuffer.size() == 5) {
+                        mergeSensorRawDataIntoCentimeterMeasurement();
+                        if ((allMeasurements.size() % 22 == 0) ^ allMeasurements.size() == 0) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    printLatest22MeasurementsAndUpdateCounter();
+                                }
+                            });
                         }
-                        sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
-                        distanceInCentimeters = Math.round(sensorUnits * CENTIMETERS_UNIT_FACTOR * 100) / 100.0;
-                        Measurement measurement = new Measurement(distanceInCentimeters);
-                        allMeasurements.add(measurement);
-                        measurementsBuffer[measurementsBufferCursor] = (distanceInCentimeters);
-                        measurementsBufferCursor++;
-                        counter = 0;
-                        decimals = new int[5];
                     }
-                    if (measurementsBufferCursor >= measurementsBuffer.length) {
-                        consoleView.println(Arrays.toString(measurementsBuffer));
-                        measurementsBufferCursor = 0;
-                        measurementsBuffer = new double[measurementsBuffer.length];
-                        updateCounterView();
-                    }
+                    rawSensorUnitsBuffer = new LinkedList<>();
+                } else {
+                    int decodedDecimalNumber = decodeDecimalNumber(e);
+                    rawSensorUnitsBuffer.add(decodedDecimalNumber);
                 }
-            } catch (IOException | NullPointerException ex) {
-                ex.printStackTrace();
-//                CrashReporter.logException(ex);
-                consoleView.println(ex);
+            } else {
+                break;
             }
-        } else {
-            consoleView.println("port == null");
         }
     }
 
-    private void countImpacts(Measurement measurement) {
-        double difference = allMeasurements.get(allMeasurements.size() - 1).getCentimetersDistance() - measurement.getCentimetersDistance();
+    private void mergeSensorRawDataIntoCentimeterMeasurement() {
+        int sensorUnits = mergeDataIntoSensorUnits();
+        double distance = calculateDistance(sensorUnits);
+        allMeasurements.add(new Measurement(distance));
+    }
+
+    private int decodeDecimalNumber(byte b) {
+        return b - 48;
+    }
+
+    private double calculateDistance(int sensorUnits) {
+        return Math.round(sensorUnits * CENTIMETERS_UNIT_FACTOR * 100) / 100.0;
+    }
+
+    private int mergeDataIntoSensorUnits() {
+        return rawSensorUnitsBuffer.get(0) * 10000 +
+                rawSensorUnitsBuffer.get(1) * 1000 +
+                rawSensorUnitsBuffer.get(2) * 100 +
+                rawSensorUnitsBuffer.get(3) * 10 +
+                rawSensorUnitsBuffer.get(4);
     }
 
     private void updateCounterView() {
         ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allMeasurements.size()));
+    }
+
+    private void printLatest22MeasurementsAndUpdateCounter() {
+        updateCounterView();
+        if (isRawDataLogEnabled) {
+            consoleView.println("allMeasurements.size(): " + allMeasurements.size());
+        }
+        consoleView.println();
+        for (int i = allMeasurements.size() - 22; i < allMeasurements.size(); i++) {
+            consoleView.print(allMeasurements.get(i).getCentimetersDistance() + ", ");
+        }
     }
 
     public void onClickRawDataLogEnabled(View view) {
@@ -343,6 +338,7 @@ public class MainActivity extends AppCompatActivity {
         consoleView.println("---onClickReset");
         closeConnection();
         allMeasurements.clear();
+        rawSensorUnitsBuffer.clear();
         updateCounterView();
         consoleView.println("DATA CLEARED");
         ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_recording);
@@ -378,10 +374,11 @@ public class MainActivity extends AppCompatActivity {
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
+                            MainActivity.instance.bufferRead();
+                            MainActivity.instance.proceedInputDataFromSensor();
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    MainActivity.instance.mik3yPrintData();
                                     if (consoleView.getSize() > maxConsoleLines) {
                                         consoleView.clear();
                                         consoleView.println("CONSOLE CLEARED");
