@@ -1,31 +1,40 @@
 package com.example.ultrasonicsensor;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import com.balsikandar.crashreporter.CrashReporter;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 
-@SuppressWarnings("Convert2Lambda")
+@SuppressWarnings({"Convert2Lambda", "Anonymous2MethodRef"})
 public class MainActivity extends AppCompatActivity {
-    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536;
+    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value from ToughSonic Sensor 12 data sheet
     public static MainActivity instance;
-    public static boolean isPrinting = false;
+    public static boolean isRecording = false;
     public static boolean isOpened = false;
 
     private List<UsbSerialDriver> availableDrivers;
@@ -35,46 +44,118 @@ public class MainActivity extends AppCompatActivity {
     private UsbSerialPort port;
 
     private ConsoleView consoleView;
-    private Drawable btnBackgroundDrawable;
     private int btnBackgroundColor;
-    private List<Double> allMeasurements = new ArrayList<>();
+    private final List<Measurement> allMeasurements = new ArrayList<>();
+    private int bufferTimeOut = 100;
+    private final int bufferSize = 99;
+    private final int maxConsoleLines = 999;
+    private boolean isRawDataLogEnabled = false;
+    private byte[] readBuffer = new byte[bufferSize];
+    private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
 
-    @SuppressWarnings("ConstantConditions")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initializeLayout();
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private void initializeLayout() {
+        instance = this;
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
-        instance = this;
         Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
-        btnBackgroundDrawable = btnAutoPrint.getBackground();
+        Drawable btnBackgroundDrawable = btnAutoPrint.getBackground();
         btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+        ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
+        SeekBar bufferTimeoutSeekBar = findViewById(R.id.bufferTimeoutSeekBar);
+        bufferTimeoutSeekBar.setEnabled(false);
+        bufferTimeoutSeekBar.setProgress((bufferTimeOut - 10) / 10);
+        bufferTimeoutSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(seekBar.getProgress() * 10 + 10));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                bufferTimeOut = seekBar.getProgress() * 10 + 10;
+                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
+            }
+        });
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        isPrinting = false;
+//        isRecording = false;
     }
 
     public void onClickOpenConnection(View view) {
         if (isOpened) {
-            isPrinting = false;
+            isRecording = false;
             consoleView.println("---onClickCloseConnection");
             closeConnection();
-
         } else {
             consoleView.println("---onClickOpenConnection");
             mik3yConnection();
         }
     }
 
-    public void onClickPrintData(View view) {
-        if (view != null) {
-            consoleView.println("---onClickPrintData");
+    public void onClickSaveDataToCsv(View view) {
+        if (allMeasurements.size() == 0) {
+            consoleView.println("NO MEASUREMENTS DATA.");
+        } else {
+            requestPermissions();
         }
-        mik3yPrintData();
+    }
+
+    private void createDataFile() {
+        File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
+        FileOperations.prepareDirectory(directory.getAbsolutePath());
+        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%smmnts%sbuff.csv", allMeasurements.size(), bufferTimeOut));
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < allMeasurements.size(); i++) {
+            Measurement measurement = allMeasurements.get(i);
+            sb.append(i + 1);
+            sb.append(",");
+            sb.append(measurement.getTime().getTime());
+            sb.append(",");
+            sb.append(measurement.getCentimetersDistance());
+            sb.append("\n");
+        }
+        FileOperations.writeToFile(outputFile, sb.toString());
+        consoleView.println(String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
+    }
+
+    private static final int PERMISSION_ID = 1029;
+
+    private void requestPermissions() {
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE
+                },
+                PERMISSION_ID
+        );
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        System.out.println("onRequestPermissionsResult");
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_ID) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Granted.
+                System.out.println("Permissions granted. WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE");
+                createDataFile();
+            }
+        }
     }
 
     private void mik3yConnection() {
@@ -93,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                     btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
                 } catch (IOException ex) {
                     ex.printStackTrace();
-                    CrashReporter.logException(ex);
+//                    CrashReporter.logException(ex);
                     consoleView.println(ex);
                 }
             } else {
@@ -101,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            CrashReporter.logException(ex);
+//            CrashReporter.logException(ex);
             consoleView.println(ex.toString());
         }
     }
@@ -128,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
                 btnOpenConnection.setText(R.string.open_connection);
                 btnOpenConnection.setBackgroundColor(btnBackgroundColor);
                 Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
-                btnAutoPrint.setText(R.string.start_auto_print);
+                btnAutoPrint.setText(R.string.start_recording);
                 btnAutoPrint.setBackgroundColor(btnBackgroundColor);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -156,112 +237,149 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void mik3yPrintData() {
-        List<Double> measurements = new ArrayList<>();
-        byte[] readBuffer = new byte[282];
+    private void bufferRead() {
+        readBuffer = new byte[bufferSize];
         if (port != null) {
             try {
-                port.read(readBuffer, 250);
-//                consoleView.println(Arrays.toString(readBuffer));
-                int[] decimals = new int[5];
-                int counter = 0;
-                int sensorUnits;
-                double average;
-                double distanceInCentimeters;
-//                consoleView.println();
-                for (byte b : readBuffer) {
-//                    consoleView.println(String.format(Locale.getDefault(), "counter: %s, b: %s", counter, b));
-                    if (b < 48 || b > 57 || counter > 4) {
-                        counter = 0;
-                        decimals = new int[5];
-                    } else {
-                        decimals[counter] = b - 48;
-//                        consoleView.println(String.format(Locale.getDefault(), "counter: %s, b: %s, decimal: %s", counter, b, decimals[counter]));
-                        counter++;
-                    }
-                    if (counter - 1 == 4) {
-                        sensorUnits = decimals[0] * 10000 + decimals[1] * 1000 + decimals[2] * 100 + decimals[3] * 10 + decimals[4];
-                        distanceInCentimeters = sensorUnits * CENTIMETERS_UNIT_FACTOR;
-                        measurements.add(distanceInCentimeters);
-                        allMeasurements.add(distanceInCentimeters);
-                        updateCounterView();
-//                        consoleView.print(", SensorUnits: " + sensorUnits);
-//                        consoleView.print(String.format(Locale.getDefault(), ", Distance %s: %f cm", measurements.size(), distanceInCentimeters));
-                        counter = 0;
-                        decimals = new int[5];
-//                        if (measurements.size() % 3 == 0 && measurements.size() > 0) {
-//                            consoleView.println();
-//                        }
-                    }
+                port.read(readBuffer, bufferTimeOut);
+                if (isRawDataLogEnabled) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            consoleView.println(Arrays.toString(readBuffer));
+                        }
+                    });
                 }
-                double sum = 0;
-                for (Double aDouble : measurements) {
-                    sum += aDouble;
-                }
-                average = sum / measurements.size();
-                consoleView.println(String.format(Locale.getDefault(), "Average from %s measurements: %f cm", measurements.size(), average));
-            } catch (IOException ex) {
+            } catch (IOException | NullPointerException ex) {
                 ex.printStackTrace();
                 CrashReporter.logException(ex);
-                consoleView.println(ex);
             }
         } else {
-            consoleView.println("port == null");
+            CrashReporter.logException(new RuntimeException("port == null"));
         }
+    }
+
+    private void proceedInputDataFromSensor() {
+        for (byte e : readBuffer) {
+            if (e != 0) {
+                if (e == 13) {
+                    if (rawSensorUnitsBuffer.size() == 5) {
+                        mergeSensorRawDataIntoCentimeterMeasurement();
+                        if ((allMeasurements.size() % 22 == 0) ^ allMeasurements.size() == 0) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    printLatest22MeasurementsAndUpdateCounter();
+                                }
+                            });
+                        }
+                    }
+                    rawSensorUnitsBuffer = new LinkedList<>();
+                } else {
+                    int decodedDecimalNumber = decodeDecimalNumber(e);
+                    rawSensorUnitsBuffer.add(decodedDecimalNumber);
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+    private void mergeSensorRawDataIntoCentimeterMeasurement() {
+        int sensorUnits = mergeDataIntoSensorUnits();
+        double distance = calculateDistance(sensorUnits);
+        allMeasurements.add(new Measurement(distance));
+    }
+
+    private int decodeDecimalNumber(byte b) {
+        return b - 48;
+    }
+
+    private double calculateDistance(int sensorUnits) {
+        return Math.round(sensorUnits * CENTIMETERS_UNIT_FACTOR * 100) / 100.0;
+    }
+
+    private int mergeDataIntoSensorUnits() {
+        return rawSensorUnitsBuffer.get(0) * 10000 +
+                rawSensorUnitsBuffer.get(1) * 1000 +
+                rawSensorUnitsBuffer.get(2) * 100 +
+                rawSensorUnitsBuffer.get(3) * 10 +
+                rawSensorUnitsBuffer.get(4);
     }
 
     private void updateCounterView() {
         ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allMeasurements.size()));
     }
 
-    public void onClickCalcAvg(View view) {
-        consoleView.println("---onClickCalcAvg");
-        double sum = 0;
-        for (Double aDouble : allMeasurements) {
-            sum += aDouble;
+    private void printLatest22MeasurementsAndUpdateCounter() {
+        updateCounterView();
+        if (isRawDataLogEnabled) {
+            consoleView.println("allMeasurements.size(): " + allMeasurements.size());
         }
-        double average = sum / allMeasurements.size();
-        consoleView.println(String.format(Locale.getDefault(), "Average from all %s measurements: %f cm", allMeasurements.size(), average));
+        consoleView.println();
+        for (int i = allMeasurements.size() - 22; i < allMeasurements.size(); i++) {
+            consoleView.print(allMeasurements.get(i).getCentimetersDistance() + ", ");
+        }
+    }
+
+    public void onClickRawDataLogEnabled(View view) {
+        consoleView.println("---onClickRawDataShowEnabled");
+        isRawDataLogEnabled = !isRawDataLogEnabled;
+        if (isRawDataLogEnabled) {
+            ((Button) findViewById(R.id.btnRawData)).setText(R.string.hide_raw_data);
+        } else {
+            ((Button) findViewById(R.id.btnRawData)).setText(R.string.show_raw_data);
+        }
     }
 
     public void onClickReset(View view) {
-        isPrinting = false;
+        isRecording = false;
         consoleView.clear();
         consoleView.println("---onClickReset");
         closeConnection();
         allMeasurements.clear();
+        rawSensorUnitsBuffer.clear();
         updateCounterView();
         consoleView.println("DATA CLEARED");
-        ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_auto_print);
+        ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_recording);
         view.setBackgroundColor(btnBackgroundColor);
     }
 
     @SuppressWarnings({"BusyWait"})
     public void onClickAutoPrint(View view) {
         consoleView.println("---onClickAutoPrint");
+        if (port != null) {
+            try {
+                port.purgeHwBuffers(true, true);
+            } catch (IOException | NullPointerException ex) {
+                ex.printStackTrace();
+                consoleView.println(ex);
+            }
+        }
         if (isOpened) {
-            if (isPrinting) {
-                consoleView.println("STOP READING");
-                isPrinting = false;
-                ((Button) view).setText(R.string.start_auto_print);
+            if (isRecording) {
+                consoleView.println("STOP RECORD");
+                isRecording = false;
+                ((Button) view).setText(R.string.start_recording);
                 view.setBackgroundColor(btnBackgroundColor);
             } else {
-                consoleView.println("START READING");
-                isPrinting = true;
+                consoleView.println("START RECORD");
+                isRecording = true;
                 Runnable delayedRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        while (isPrinting) {
+                        while (isRecording) {
                             try {
-                                Thread.sleep(250);
+                                Thread.sleep(bufferTimeOut);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
+                            MainActivity.instance.bufferRead();
+                            MainActivity.instance.proceedInputDataFromSensor();
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    MainActivity.instance.onClickPrintData(null);
-                                    if (consoleView.getSize() > 99) {
+                                    if (consoleView.getSize() > maxConsoleLines) {
                                         consoleView.clear();
                                         consoleView.println("CONSOLE CLEARED");
                                     }
@@ -276,7 +394,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
                 new Thread(delayedRunnable).start();
-                ((Button) view).setText(R.string.stop_auto_print);
+                ((Button) view).setText(R.string.stop_recording);
                 view.setBackgroundColor(getColor(R.color.design_default_color_error));
             }
         } else {
