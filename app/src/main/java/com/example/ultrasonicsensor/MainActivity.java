@@ -48,7 +48,9 @@ public class MainActivity extends AppCompatActivity {
     //read and print data in the console view
     private ConsoleView consoleView;
     private int btnBackgroundColor;
+    private final List<Measurement> allNonZeroMeasurements = new ArrayList<>();
     private final List<Measurement> allMeasurements = new ArrayList<>();
+    private final List<Measurement> zeroMeasurements = new ArrayList<>();
     private final int bufferTimeOut = 100;
     private final int bufferSize = 99;
     private final int maxMeasurementsInLine = 18;
@@ -203,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSaveDataToCsv(View view) {
-        if (allMeasurements.size() == 0) {
+        if (allNonZeroMeasurements.size() == 0) {
             consoleView.println("NO MEASUREMENTS DATA.");
         } else {
             requestPermissions();
@@ -215,13 +217,13 @@ public class MainActivity extends AppCompatActivity {
         FileOperations.prepareDirectory(directory.getAbsolutePath());
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
                 impacts,
-                allMeasurements.size(),
+                allNonZeroMeasurements.size(),
                 minTimeIntervalBetweenImpactMillis,
                 minDifference,
                 avgMeasurements));
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < allMeasurements.size(); i++) {
-            Measurement measurement = allMeasurements.get(i);
+        for (int i = 0; i < allNonZeroMeasurements.size(); i++) {
+            Measurement measurement = allNonZeroMeasurements.get(i);
             sb.append(i + 1);
             sb.append(",");
             sb.append(measurement.getTime().getTime());
@@ -370,12 +372,20 @@ public class MainActivity extends AppCompatActivity {
             if (e != 0) {
                 if (e == 13) {
                     if (rawSensorUnitsBuffer.size() == 5) {
-                        mergeSensorRawDataIntoCentimeterMeasurement();
-                        if (isImpactFound()) {
-                            runOnUiThread(this::updateImpactsCounterView);
-                        }
-                        if ((allMeasurements.size() % maxMeasurementsInLine == 0) ^ allMeasurements.size() == 0) {
-                            runOnUiThread(this::printLatest21MeasurementsAndUpdateCounter);
+                        if (mergeSensorRawDataIntoCentimeterMeasurement()) {
+                            if (isImpactFound()) {
+                                runOnUiThread(this::updateImpactsCounterView);
+                            }
+                            if ((allNonZeroMeasurements.size() % maxMeasurementsInLine == 0) ^ allNonZeroMeasurements.size() == 0) {
+                                runOnUiThread(this::printLatest18MeasurementsAndUpdateCounter);
+                            }
+                        } else {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    consoleView.print("-SignalLost");
+                                }
+                            });
                         }
                     }
                     rawSensorUnitsBuffer = new LinkedList<>();
@@ -390,13 +400,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isImpactFound() {
-        if (allMeasurements.size() > avgMeasurements) {
+        if (allNonZeroMeasurements.size() > avgMeasurements) {
             double sum = 0;
-            for (int i = allMeasurements.size() - avgMeasurements - 1; i < allMeasurements.size() - 1; i++) {
-                sum += allMeasurements.get(i).getCentimetersDistance();
+            for (int i = allNonZeroMeasurements.size() - avgMeasurements - 1; i < allNonZeroMeasurements.size() - 1; i++) {
+                sum += allNonZeroMeasurements.get(i).getCentimetersDistance();
             }
             double averageFromPreviousXMeasurements = sum / avgMeasurements;
-            double differenceToCheck = averageFromPreviousXMeasurements - allMeasurements.get(allMeasurements.size() - 1).getCentimetersDistance();
+            double differenceToCheck = averageFromPreviousXMeasurements - allNonZeroMeasurements.get(allNonZeroMeasurements.size() - 1).getCentimetersDistance();
             if (differenceToCheck > minDifference) {
                 long currentMillis = System.currentTimeMillis();
                 long timeDifference = currentMillis - previousImpactTimestamp;
@@ -414,10 +424,17 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
     }
 
-    private void mergeSensorRawDataIntoCentimeterMeasurement() {
+    private boolean mergeSensorRawDataIntoCentimeterMeasurement() {
         int sensorUnits = mergeDataIntoSensorUnits();
         double distance = calculateDistance(sensorUnits);
+        if (sensorUnits > 0) {
+            allNonZeroMeasurements.add(new Measurement(distance));
+            return true;
+        } else {
+            zeroMeasurements.add(new Measurement(0));
+        }
         allMeasurements.add(new Measurement(distance));
+        return false;
     }
 
     private int decodeDecimalNumber(byte b) {
@@ -437,17 +454,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateMeasurementCounterView() {
-        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allMeasurements.size()));
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allNonZeroMeasurements.size()));
     }
 
-    private void printLatest21MeasurementsAndUpdateCounter() {
+    private void printLatest18MeasurementsAndUpdateCounter() {
         updateMeasurementCounterView();
         if (isRawDataLogEnabled) {
-            consoleView.println("allMeasurements.size(): " + allMeasurements.size());
+            consoleView.println("allMeasurements.size(): " + allNonZeroMeasurements.size());
         }
         consoleView.println();
-        for (int i = allMeasurements.size() - maxMeasurementsInLine; i < allMeasurements.size(); i++) {
-            consoleView.print(allMeasurements.get(i).getCentimetersDistance() + ", ");
+        for (int i = allNonZeroMeasurements.size() - maxMeasurementsInLine; i < allNonZeroMeasurements.size(); i++) {
+            consoleView.print(allNonZeroMeasurements.get(i).getCentimetersDistance() + ", ");
         }
     }
 
@@ -461,7 +478,7 @@ public class MainActivity extends AppCompatActivity {
         consoleView.clear();
         consoleView.println("---onClickReset");
         closeConnection();
-        allMeasurements.clear();
+        allNonZeroMeasurements.clear();
         rawSensorUnitsBuffer.clear();
         isRawDataLogEnabled = false;
         //count impacts
