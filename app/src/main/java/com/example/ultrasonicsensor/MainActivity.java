@@ -33,7 +33,7 @@ import java.util.List;
 
 @SuppressWarnings({"Convert2Lambda"})
 public class MainActivity extends AppCompatActivity {
-    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value from ToughSonic Sensor 12 data sheet
+    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value in centimeters from ToughSonic Sensor 12 data sheet
     public static MainActivity instance;
     public static boolean isRecording = false;
     public static boolean isOpened = false;
@@ -73,13 +73,14 @@ public class MainActivity extends AppCompatActivity {
         initializeLayout();
     }
 
+    @SuppressWarnings("ConstantConditions")
     private void initializeLayout() {
         instance = this;
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
-        Button btnAutoPrint = findViewById(R.id.btnRecording);
-        Drawable btnBackgroundDrawable = btnAutoPrint.getBackground();
-        btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+        Button btnRecording = findViewById(R.id.btnRecording);
+        Drawable btnBackgroundDrawable = btnRecording.getBackground();
+        btnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
         updateIntervalValueTextView();
         SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
         minTimeIntervalSeekBar.setMax(19);
