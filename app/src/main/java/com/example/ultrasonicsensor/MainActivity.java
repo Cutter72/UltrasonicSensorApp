@@ -138,14 +138,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateMinDiffPickerView() {
-        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(getMinDiffPickerValue(minDifference));
+        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(getMinDiffPickerValue());
     }
 
     private void updateAvgPickerView() {
-        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(getAvgPickerValue(avgMeasurements));
+        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(getAvgPickerValue());
     }
 
-    private int getMinDiffPickerValue(double minDifference) {
+    private int getMinDiffPickerValue() {
         for (int i = 0; i < minDiffValues.length; i++) {
             if (minDiffValues[i] == minDifference) {
                 return i;
@@ -154,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
         return 0;
     }
 
-    private int getAvgPickerValue(int minDifference) {
+    private int getAvgPickerValue() {
         for (int i = 0; i < avgMeasurementsValues.length; i++) {
             if (avgMeasurementsValues[i] == avgMeasurements) {
                 return i;
@@ -206,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickSaveDataToCsv(View view) {
         if (allNonZeroMeasurements.size() == 0) {
-            consoleView.println("NO MEASUREMENTS DATA.");
+            consoleView.println("DATA NOT SAVED. NO MEASUREMENTS RECORDED.");
         } else {
             requestPermissions();
         }
