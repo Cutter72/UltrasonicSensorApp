@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private final List<Measurement> allMeasurements = new ArrayList<>();
     private final int bufferTimeOut = 100;
     private final int bufferSize = 99;
-    private final int maxMeasurementsInLine = 21;
+    private final int maxMeasurementsInLine = 18;
     private final int maxConsoleLines = 999;
     private boolean isRawDataLogEnabled = false;
     private byte[] readBuffer = new byte[bufferSize];
