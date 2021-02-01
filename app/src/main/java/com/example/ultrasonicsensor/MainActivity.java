@@ -178,7 +178,12 @@ public class MainActivity extends AppCompatActivity {
     private void createDataFile() {
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
         FileOperations.prepareDirectory(directory.getAbsolutePath());
-        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%smmnts%sbuff.csv", allMeasurements.size(), bufferTimeOut));
+        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
+                impacts,
+                allMeasurements.size(),
+                minTimeIntervalBetweenImpactMillis,
+                minDifference,
+                avgMeasurements));
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < allMeasurements.size(); i++) {
             Measurement measurement = allMeasurements.get(i);
