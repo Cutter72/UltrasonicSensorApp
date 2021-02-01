@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
     //count impacts
     private double minDifference = 0.4;
-    private int avgMeasurements = 3;
+    private int avgMeasurements = 4;
     private int minTimeIntervalBetweenImpactMillis = 1000; //50ms => 20 impacts / second
     private int impacts = 0;
     private long previousImpactTimestamp = 0;
@@ -73,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
         initializeLayout();
     }
 
-    @SuppressWarnings("ConstantConditions")
     private void initializeLayout() {
         instance = this;
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
@@ -83,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
         btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
         ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
         SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
-//        minTimeIntervalSeekBar.setEnabled(false);
         minTimeIntervalSeekBar.setMax(19);
         minTimeIntervalSeekBar.setProgress((minTimeIntervalBetweenImpactMillis - 50) / 50);
         minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -107,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
         minDifferencePicker.setMinValue(0);
         minDifferencePicker.setMaxValue(minDiffValues.length - 1);
         minDifferencePicker.setDisplayedValues(transformToStringArray(minDiffValues));
+        minDifferencePicker.setValue(getMinDiffPickerValue(minDifference));
         minDifferencePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             @Override
             public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
@@ -118,12 +117,31 @@ public class MainActivity extends AppCompatActivity {
         avgMeasurementsPicker.setMinValue(0);
         avgMeasurementsPicker.setMaxValue(avgMeasurementsValues.length - 1);
         avgMeasurementsPicker.setDisplayedValues(transformToStringArray(avgMeasurementsValues));
+        avgMeasurementsPicker.setValue(getAvgPickerValue(avgMeasurements));
         avgMeasurementsPicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             @Override
             public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
                 setAvgMeasurementsValues(newVal);
             }
         });
+    }
+
+    private int getMinDiffPickerValue(double minDifference) {
+        for (int i = 0; i < minDiffValues.length; i++) {
+            if (minDiffValues[i] == minDifference) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private int getAvgPickerValue(int minDifference) {
+        for (int i = 0; i < avgMeasurementsValues.length; i++) {
+            if (avgMeasurementsValues[i] == avgMeasurements) {
+                return i;
+            }
+        }
+        return 0;
     }
 
     private void setMinDiffValue(int newVal) {
