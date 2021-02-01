@@ -77,13 +77,13 @@ public class MainActivity extends AppCompatActivity {
         instance = this;
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
-        Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
+        Button btnAutoPrint = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnAutoPrint.getBackground();
         btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
-        ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
+        updateIntervalValueTextView();
         SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
         minTimeIntervalSeekBar.setMax(19);
-        minTimeIntervalSeekBar.setProgress((minTimeIntervalBetweenImpactMillis - 50) / 50);
+        updateIntervalSeekBarView();
         minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -97,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 minTimeIntervalBetweenImpactMillis = seekBar.getProgress() * 50 + 50;
-                ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
+                updateIntervalValueTextView();
             }
         });
 
@@ -105,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
         minDifferencePicker.setMinValue(0);
         minDifferencePicker.setMaxValue(minDiffValues.length - 1);
         minDifferencePicker.setDisplayedValues(transformToStringArray(minDiffValues));
-        minDifferencePicker.setValue(getMinDiffPickerValue(minDifference));
+        updateMinDiffPickerView();
         minDifferencePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             @Override
             public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
@@ -117,13 +117,29 @@ public class MainActivity extends AppCompatActivity {
         avgMeasurementsPicker.setMinValue(0);
         avgMeasurementsPicker.setMaxValue(avgMeasurementsValues.length - 1);
         avgMeasurementsPicker.setDisplayedValues(transformToStringArray(avgMeasurementsValues));
-        avgMeasurementsPicker.setValue(getAvgPickerValue(avgMeasurements));
+        updateAvgPickerView();
         avgMeasurementsPicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             @Override
             public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
                 setAvgMeasurementsValues(newVal);
             }
         });
+    }
+
+    private void updateIntervalValueTextView() {
+        ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
+    }
+
+    private void updateIntervalSeekBarView() {
+        ((SeekBar) findViewById(R.id.minTimeIntervalSeekBar)).setProgress((minTimeIntervalBetweenImpactMillis - 50) / 50);
+    }
+
+    private void updateMinDiffPickerView() {
+        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(getMinDiffPickerValue(minDifference));
+    }
+
+    private void updateAvgPickerView() {
+        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(getAvgPickerValue(avgMeasurements));
     }
 
     private int getMinDiffPickerValue(double minDifference) {
@@ -252,9 +268,7 @@ public class MainActivity extends AppCompatActivity {
                     port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
                     consoleView.println("PORT OPEN");
                     isOpened = true;
-                    Button btnOpenConnection = findViewById(R.id.openConnection);
-                    btnOpenConnection.setText(R.string.close_connection);
-                    btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
+                    updateConnectionButtonView();
                 } catch (IOException ex) {
                     ex.printStackTrace();
 //                    CrashReporter.logException(ex);
@@ -267,6 +281,17 @@ public class MainActivity extends AppCompatActivity {
             ex.printStackTrace();
 //            CrashReporter.logException(ex);
             consoleView.println(ex.toString());
+        }
+    }
+
+    private void updateConnectionButtonView() {
+        Button btnOpenConnection = findViewById(R.id.openConnection);
+        if (isOpened) {
+            btnOpenConnection.setText(R.string.close_connection);
+            btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            btnOpenConnection.setText(R.string.open_connection);
+            btnOpenConnection.setBackgroundColor(btnBackgroundColor);
         }
     }
 
@@ -288,12 +313,9 @@ public class MainActivity extends AppCompatActivity {
             try {
                 port.close();
                 isOpened = false;
-                Button btnOpenConnection = findViewById(R.id.openConnection);
-                btnOpenConnection.setText(R.string.open_connection);
-                btnOpenConnection.setBackgroundColor(btnBackgroundColor);
-                Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
-                btnAutoPrint.setText(R.string.start_recording);
-                btnAutoPrint.setBackgroundColor(btnBackgroundColor);
+                isRecording = false;
+                updateConnectionButtonView();
+                updateRecordingButtonView();
             } catch (IOException e) {
                 System.out.println(e.getMessage());
             }
@@ -428,34 +450,62 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onClickRawDataLogEnabled(View view) {
-        consoleView.println("---onClickRawDataShowEnabled");
+    public void onClickRawDataLog(View view) {
+        consoleView.println("---onClickRawDataShow");
         isRawDataLogEnabled = !isRawDataLogEnabled;
-        if (isRawDataLogEnabled) {
-            ((Button) findViewById(R.id.btnRawData)).setText(R.string.hide_raw_data);
-        } else {
-            ((Button) findViewById(R.id.btnRawData)).setText(R.string.show_raw_data);
-        }
+        updateRawDataLogView();
     }
 
     public void onClickReset(View view) {
-        isRecording = false;
         consoleView.clear();
         consoleView.println("---onClickReset");
         closeConnection();
         allMeasurements.clear();
         rawSensorUnitsBuffer.clear();
+        isRawDataLogEnabled = false;
+        //count impacts
+        minDifference = 0.4;
+        avgMeasurements = 4;
+        minTimeIntervalBetweenImpactMillis = 1000;
         impacts = 0;
-        updateMeasurementCounterView();
+        previousImpactTimestamp = 0;
+        updateIntervalSeekBarView();
+        updateAvgPickerView();
+        updateMinDiffPickerView();
         updateImpactsCounterView();
+        updateMeasurementCounterView();
+        updateRecordingButtonView();
+        updateRawDataLogView();
         consoleView.println("DATA CLEARED");
-        ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_recording);
-        view.setBackgroundColor(btnBackgroundColor);
+    }
+
+    private void updateRawDataLogView() {
+        Button btnRawDataLog = findViewById(R.id.btnRawDataLog);
+        if (isRawDataLogEnabled) {
+            consoleView.println("RAW DATA SHOW ENABLED");
+            btnRawDataLog.setText(R.string.hide_raw_data);
+            btnRawDataLog.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            consoleView.println("RAW DATA SHOW DISABLED");
+            btnRawDataLog.setText(R.string.show_raw_data);
+            btnRawDataLog.setBackgroundColor(btnBackgroundColor);
+        }
+    }
+
+    private void updateRecordingButtonView() {
+        Button btnRecording = findViewById(R.id.btnRecording);
+        if (isRecording) {
+            btnRecording.setText(R.string.stop_recording);
+            btnRecording.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            btnRecording.setText(R.string.start_recording);
+            btnRecording.setBackgroundColor(btnBackgroundColor);
+        }
     }
 
     @SuppressWarnings({"BusyWait"})
-    public void onClickAutoPrint(View view) {
-        consoleView.println("---onClickAutoPrint");
+    public void onClickRecording(View view) {
+        consoleView.println("---onClickRecording");
         if (port != null) {
             try {
                 port.purgeHwBuffers(true, true);
@@ -466,12 +516,10 @@ public class MainActivity extends AppCompatActivity {
         }
         if (isOpened) {
             if (isRecording) {
-                consoleView.println("STOP RECORD");
+                consoleView.println("STOP RECORDING");
                 isRecording = false;
-                ((Button) view).setText(R.string.start_recording);
-                view.setBackgroundColor(btnBackgroundColor);
             } else {
-                consoleView.println("START RECORD");
+                consoleView.println("START RECORDING");
                 isRecording = true;
                 Runnable delayedRunnable = new Runnable() {
                     @Override
@@ -502,9 +550,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
                 new Thread(delayedRunnable).start();
-                ((Button) view).setText(R.string.stop_recording);
-                view.setBackgroundColor(getColor(R.color.design_default_color_error));
             }
+            updateRecordingButtonView();
         } else {
             consoleView.println("CONNECTION IS NOT OPEN");
         }

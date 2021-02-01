@@ -16,10 +16,10 @@
         app:layout_constraintTop_toBottomOf="@+id/reset" />
 
     <Button
-        android:id="@+id/btnAutoPrint"
+        android:id="@+id/btnRecording"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="onClickAutoPrint"
+        android:onClick="onClickRecording"
         android:text="@string/start_recording"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/saveDataToCsv" />
@@ -40,15 +40,15 @@
         android:layout_marginEnd="2dp"
         android:onClick="onClickClearConsole"
         android:text="@string/clear_console"
-        app:layout_constraintEnd_toStartOf="@+id/btnRawData"
+        app:layout_constraintEnd_toStartOf="@+id/btnRawDataLog"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/btnRawData"
+        android:id="@+id/btnRawDataLog"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="2dp"
-        android:onClick="onClickRawDataLogEnabled"
+        android:onClick="onClickRawDataLog"
         android:text="@string/show_raw_data"
         app:layout_constraintEnd_toStartOf="@+id/saveDataToCsv"
         app:layout_constraintTop_toTopOf="parent" />
@@ -71,7 +71,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/minDifferencePicker"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnAutoPrint">
+        app:layout_constraintTop_toBottomOf="@+id/btnRecording">
 
         <LinearLayout
             android:id="@+id/linearLayout"
@@ -182,9 +182,9 @@
         android:layout_marginEnd="24dp"
         android:max="9"
         android:progress="4"
-        app:layout_constraintBottom_toBottomOf="@+id/btnAutoPrint"
-        app:layout_constraintEnd_toStartOf="@+id/btnAutoPrint"
+        app:layout_constraintBottom_toBottomOf="@+id/btnRecording"
+        app:layout_constraintEnd_toStartOf="@+id/btnRecording"
         app:layout_constraintStart_toStartOf="@+id/clearConsole"
-        app:layout_constraintTop_toTopOf="@+id/btnAutoPrint" />
+        app:layout_constraintTop_toTopOf="@+id/btnRecording" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
