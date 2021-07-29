@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
+import android.widget.NumberPicker;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -30,28 +31,45 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-@SuppressWarnings({"Convert2Lambda", "Anonymous2MethodRef"})
+@SuppressWarnings({"Convert2Lambda"})
 public class MainActivity extends AppCompatActivity {
-    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value from ToughSonic Sensor 12 data sheet
+    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value in centimeters from ToughSonic Sensor 12 data sheet
     public static MainActivity instance;
     public static boolean isRecording = false;
     public static boolean isOpened = false;
 
+    //RS232 connection
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
     private UsbSerialDriver driver;
     private UsbDeviceConnection connection;
     private UsbSerialPort port;
 
+    //layout
+    private final int SEEKBAR_MAX_VALUE = 19;
     private ConsoleView consoleView;
     private int btnBackgroundColor;
-    private final List<Measurement> allMeasurements = new ArrayList<>();
-    private int bufferTimeOut = 100;
-    private final int bufferSize = 99;
-    private final int maxConsoleLines = 999;
+
+    //read and print data in the console view
+    private final int BUFFER_TIME_OUT = 100;
+    private final int BUFFER_SIZE = 99;
+    private final int MEASUREMENTS_IN_ONE_LINE = 18;
+    private final int CONSOLE_LINES_LIMIT = 999;
     private boolean isRawDataLogEnabled = false;
-    private byte[] readBuffer = new byte[bufferSize];
+    private byte[] readBuffer = new byte[BUFFER_SIZE];
+    private final List<Measurement> allNonZeroMeasurements = new ArrayList<>();
+    private final List<Measurement> allMeasurements = new ArrayList<>();
+    private final List<Measurement> zeroMeasurements = new ArrayList<>();
     private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
+
+    //count impacts
+    private double minDifference = 0.4;
+    private int avgMeasurements = 4;
+    private int minTimeIntervalBetweenImpactMillis = 1000; //50ms => 20 impacts / second
+    private int impacts = 0;
+    private long previousImpactTimestamp = 0;
+    private final double[] minDiffValues = new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    private final int[] avgMeasurementsValues = new int[]{3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,19 +81,28 @@ public class MainActivity extends AppCompatActivity {
     @SuppressWarnings("ConstantConditions")
     private void initializeLayout() {
         instance = this;
+        initializeConsoleView();
+        Button btnRecording = findViewById(R.id.btnRecording);
+        Drawable btnBackgroundDrawable = btnRecording.getBackground();
+        btnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+        updateIntervalValueTextView();
+        initializeSeekBar();
+        initializeNumberPickers();
+    }
+
+    private void initializeConsoleView() {
         consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         consoleView.println("Console view created.");
-        Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
-        Drawable btnBackgroundDrawable = btnAutoPrint.getBackground();
-        btnBackgroundColor = btnAutoPrint.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
-        ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
-        SeekBar bufferTimeoutSeekBar = findViewById(R.id.bufferTimeoutSeekBar);
-        bufferTimeoutSeekBar.setEnabled(false);
-        bufferTimeoutSeekBar.setProgress((bufferTimeOut - 10) / 10);
-        bufferTimeoutSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+    }
+
+    private void initializeSeekBar() {
+        SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
+        minTimeIntervalSeekBar.setMax(SEEKBAR_MAX_VALUE);
+        updateIntervalSeekBarView();
+        minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(seekBar.getProgress() * 10 + 10));
+                ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(seekBar.getProgress() * 50 + 50));
             }
 
             @Override
@@ -84,10 +111,93 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                bufferTimeOut = seekBar.getProgress() * 10 + 10;
-                ((TextView) findViewById(R.id.bufferTimeOut)).setText(String.valueOf(bufferTimeOut));
+                minTimeIntervalBetweenImpactMillis = seekBar.getProgress() * 50 + 50;
+                updateIntervalValueTextView();
             }
         });
+    }
+
+    private void initializeNumberPickers() {
+        NumberPicker minDifferencePicker = findViewById(R.id.minDifferencePicker);
+        minDifferencePicker.setMinValue(0);
+        minDifferencePicker.setMaxValue(minDiffValues.length - 1);
+        minDifferencePicker.setDisplayedValues(transformToStringArray(minDiffValues));
+        updateMinDiffPickerView();
+        minDifferencePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+            @Override
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                setMinDiffValue(newVal);
+            }
+        });
+        NumberPicker avgMeasurementsPicker = findViewById(R.id.avgMeasurementsPicker);
+        avgMeasurementsPicker.setMinValue(0);
+        avgMeasurementsPicker.setMaxValue(avgMeasurementsValues.length - 1);
+        avgMeasurementsPicker.setDisplayedValues(transformToStringArray(avgMeasurementsValues));
+        updateAvgPickerView();
+        avgMeasurementsPicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+            @Override
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                setAvgMeasurementsValues(newVal);
+            }
+        });
+    }
+
+    private void updateIntervalValueTextView() {
+        ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
+    }
+
+    private void updateIntervalSeekBarView() {
+        ((SeekBar) findViewById(R.id.minTimeIntervalSeekBar)).setProgress((minTimeIntervalBetweenImpactMillis - 50) / 50);
+    }
+
+    private void updateMinDiffPickerView() {
+        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(getMinDiffPickerValue());
+    }
+
+    private void updateAvgPickerView() {
+        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(getAvgPickerValue());
+    }
+
+    private int getMinDiffPickerValue() {
+        for (int i = 0; i < minDiffValues.length; i++) {
+            if (minDiffValues[i] == minDifference) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private int getAvgPickerValue() {
+        for (int i = 0; i < avgMeasurementsValues.length; i++) {
+            if (avgMeasurementsValues[i] == avgMeasurements) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private void setMinDiffValue(int newVal) {
+        minDifference = minDiffValues[newVal];
+    }
+
+    private void setAvgMeasurementsValues(int newVal) {
+        avgMeasurements = avgMeasurementsValues[newVal];
+    }
+
+    private String[] transformToStringArray(double[] doubleTab) {
+        String[] result = new String[doubleTab.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = String.valueOf(doubleTab[i]);
+        }
+        return result;
+    }
+
+    private String[] transformToStringArray(int[] intTab) {
+        String[] result = new String[intTab.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = String.valueOf(intTab[i]);
+        }
+        return result;
     }
 
     @Override
@@ -108,8 +218,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSaveDataToCsv(View view) {
-        if (allMeasurements.size() == 0) {
-            consoleView.println("NO MEASUREMENTS DATA.");
+        if (allNonZeroMeasurements.size() == 0) {
+            consoleView.println("DATA NOT SAVED. NO MEASUREMENTS RECORDED.");
         } else {
             requestPermissions();
         }
@@ -118,10 +228,15 @@ public class MainActivity extends AppCompatActivity {
     private void createDataFile() {
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
         FileOperations.prepareDirectory(directory.getAbsolutePath());
-        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%smmnts%sbuff.csv", allMeasurements.size(), bufferTimeOut));
+        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
+                impacts,
+                allNonZeroMeasurements.size(),
+                minTimeIntervalBetweenImpactMillis,
+                minDifference,
+                avgMeasurements));
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < allMeasurements.size(); i++) {
-            Measurement measurement = allMeasurements.get(i);
+        for (int i = 0; i < allNonZeroMeasurements.size(); i++) {
+            Measurement measurement = allNonZeroMeasurements.get(i);
             sb.append(i + 1);
             sb.append(",");
             sb.append(measurement.getTime().getTime());
@@ -169,9 +284,7 @@ public class MainActivity extends AppCompatActivity {
                     port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
                     consoleView.println("PORT OPEN");
                     isOpened = true;
-                    Button btnOpenConnection = findViewById(R.id.openConnection);
-                    btnOpenConnection.setText(R.string.close_connection);
-                    btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
+                    updateConnectionButtonView();
                 } catch (IOException ex) {
                     ex.printStackTrace();
 //                    CrashReporter.logException(ex);
@@ -184,6 +297,17 @@ public class MainActivity extends AppCompatActivity {
             ex.printStackTrace();
 //            CrashReporter.logException(ex);
             consoleView.println(ex.toString());
+        }
+    }
+
+    private void updateConnectionButtonView() {
+        Button btnOpenConnection = findViewById(R.id.openConnection);
+        if (isOpened) {
+            btnOpenConnection.setText(R.string.close_connection);
+            btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            btnOpenConnection.setText(R.string.open_connection);
+            btnOpenConnection.setBackgroundColor(btnBackgroundColor);
         }
     }
 
@@ -205,14 +329,11 @@ public class MainActivity extends AppCompatActivity {
             try {
                 port.close();
                 isOpened = false;
-                Button btnOpenConnection = findViewById(R.id.openConnection);
-                btnOpenConnection.setText(R.string.open_connection);
-                btnOpenConnection.setBackgroundColor(btnBackgroundColor);
-                Button btnAutoPrint = findViewById(R.id.btnAutoPrint);
-                btnAutoPrint.setText(R.string.start_recording);
-                btnAutoPrint.setBackgroundColor(btnBackgroundColor);
+                isRecording = false;
+                updateConnectionButtonView();
+                updateRecordingButtonView();
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
             connection.close();
         }
@@ -238,10 +359,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bufferRead() {
-        readBuffer = new byte[bufferSize];
+        readBuffer = new byte[BUFFER_SIZE];
         if (port != null) {
             try {
-                port.read(readBuffer, bufferTimeOut);
+                port.read(readBuffer, BUFFER_TIME_OUT);
                 if (isRawDataLogEnabled) {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -252,7 +373,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             } catch (IOException | NullPointerException ex) {
                 ex.printStackTrace();
-                CrashReporter.logException(ex);
+//                CrashReporter.logException(ex);
             }
         } else {
             CrashReporter.logException(new RuntimeException("port == null"));
@@ -264,12 +385,18 @@ public class MainActivity extends AppCompatActivity {
             if (e != 0) {
                 if (e == 13) {
                     if (rawSensorUnitsBuffer.size() == 5) {
-                        mergeSensorRawDataIntoCentimeterMeasurement();
-                        if ((allMeasurements.size() % 22 == 0) ^ allMeasurements.size() == 0) {
+                        if (mergeSensorRawDataIntoCentimeterMeasurement()) {
+                            if (isImpactFound()) {
+                                runOnUiThread(this::updateImpactsCounterView);
+                            }
+                            if ((allNonZeroMeasurements.size() % MEASUREMENTS_IN_ONE_LINE == 0) ^ allNonZeroMeasurements.size() == 0) {
+                                runOnUiThread(this::printLatest18MeasurementsAndUpdateCounter);
+                            }
+                        } else {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    printLatest22MeasurementsAndUpdateCounter();
+                                    consoleView.print("-SignalLost");
                                 }
                             });
                         }
@@ -285,10 +412,42 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void mergeSensorRawDataIntoCentimeterMeasurement() {
+    private boolean isImpactFound() {
+        if (allNonZeroMeasurements.size() > avgMeasurements) {
+            double sum = 0;
+            for (int i = allNonZeroMeasurements.size() - avgMeasurements - 1; i < allNonZeroMeasurements.size() - 1; i++) {
+                sum += allNonZeroMeasurements.get(i).getCentimetersDistance();
+            }
+            double averageFromPreviousXMeasurements = sum / avgMeasurements;
+            double differenceToCheck = averageFromPreviousXMeasurements - allNonZeroMeasurements.get(allNonZeroMeasurements.size() - 1).getCentimetersDistance();
+            if (differenceToCheck > minDifference) {
+                long currentMillis = System.currentTimeMillis();
+                long timeDifference = currentMillis - previousImpactTimestamp;
+                if (timeDifference >= minTimeIntervalBetweenImpactMillis) {
+                    impacts++;
+                    previousImpactTimestamp = currentMillis;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void updateImpactsCounterView() {
+        ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
+    }
+
+    private boolean mergeSensorRawDataIntoCentimeterMeasurement() {
         int sensorUnits = mergeDataIntoSensorUnits();
         double distance = calculateDistance(sensorUnits);
+        if (sensorUnits > 0) {
+            allNonZeroMeasurements.add(new Measurement(distance));
+            return true;
+        } else {
+            zeroMeasurements.add(new Measurement(0));
+        }
         allMeasurements.add(new Measurement(distance));
+        return false;
     }
 
     private int decodeDecimalNumber(byte b) {
@@ -307,47 +466,77 @@ public class MainActivity extends AppCompatActivity {
                 rawSensorUnitsBuffer.get(4);
     }
 
-    private void updateCounterView() {
-        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allMeasurements.size()));
+    private void updateMeasurementCounterView() {
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allNonZeroMeasurements.size()));
     }
 
-    private void printLatest22MeasurementsAndUpdateCounter() {
-        updateCounterView();
+    private void printLatest18MeasurementsAndUpdateCounter() {
+        updateMeasurementCounterView();
         if (isRawDataLogEnabled) {
-            consoleView.println("allMeasurements.size(): " + allMeasurements.size());
+            consoleView.println("allMeasurements.size(): " + allNonZeroMeasurements.size());
         }
         consoleView.println();
-        for (int i = allMeasurements.size() - 22; i < allMeasurements.size(); i++) {
-            consoleView.print(allMeasurements.get(i).getCentimetersDistance() + ", ");
+        for (int i = allNonZeroMeasurements.size() - MEASUREMENTS_IN_ONE_LINE; i < allNonZeroMeasurements.size(); i++) {
+            consoleView.print(allNonZeroMeasurements.get(i).getCentimetersDistance() + ", ");
         }
     }
 
-    public void onClickRawDataLogEnabled(View view) {
-        consoleView.println("---onClickRawDataShowEnabled");
+    public void onClickRawDataLog(View view) {
+        consoleView.println("---onClickRawDataShow");
         isRawDataLogEnabled = !isRawDataLogEnabled;
-        if (isRawDataLogEnabled) {
-            ((Button) findViewById(R.id.btnRawData)).setText(R.string.hide_raw_data);
-        } else {
-            ((Button) findViewById(R.id.btnRawData)).setText(R.string.show_raw_data);
-        }
+        updateRawDataLogView();
     }
 
     public void onClickReset(View view) {
-        isRecording = false;
         consoleView.clear();
         consoleView.println("---onClickReset");
         closeConnection();
-        allMeasurements.clear();
+        allNonZeroMeasurements.clear();
         rawSensorUnitsBuffer.clear();
-        updateCounterView();
+        isRawDataLogEnabled = false;
+        //count impacts
+        minDifference = 0.4;
+        avgMeasurements = 4;
+        minTimeIntervalBetweenImpactMillis = 1000;
+        impacts = 0;
+        previousImpactTimestamp = 0;
+        updateIntervalSeekBarView();
+        updateAvgPickerView();
+        updateMinDiffPickerView();
+        updateImpactsCounterView();
+        updateMeasurementCounterView();
+        updateRecordingButtonView();
+        updateRawDataLogView();
         consoleView.println("DATA CLEARED");
-        ((Button) findViewById(R.id.btnAutoPrint)).setText(R.string.start_recording);
-        view.setBackgroundColor(btnBackgroundColor);
+    }
+
+    private void updateRawDataLogView() {
+        Button btnRawDataLog = findViewById(R.id.btnRawDataLog);
+        if (isRawDataLogEnabled) {
+            consoleView.println("RAW DATA SHOW ENABLED");
+            btnRawDataLog.setText(R.string.hide_raw_data);
+            btnRawDataLog.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            consoleView.println("RAW DATA SHOW DISABLED");
+            btnRawDataLog.setText(R.string.show_raw_data);
+            btnRawDataLog.setBackgroundColor(btnBackgroundColor);
+        }
+    }
+
+    private void updateRecordingButtonView() {
+        Button btnRecording = findViewById(R.id.btnRecording);
+        if (isRecording) {
+            btnRecording.setText(R.string.stop_recording);
+            btnRecording.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            btnRecording.setText(R.string.start_recording);
+            btnRecording.setBackgroundColor(btnBackgroundColor);
+        }
     }
 
     @SuppressWarnings({"BusyWait"})
-    public void onClickAutoPrint(View view) {
-        consoleView.println("---onClickAutoPrint");
+    public void onClickRecording(View view) {
+        consoleView.println("---onClickRecording");
         if (port != null) {
             try {
                 port.purgeHwBuffers(true, true);
@@ -358,19 +547,17 @@ public class MainActivity extends AppCompatActivity {
         }
         if (isOpened) {
             if (isRecording) {
-                consoleView.println("STOP RECORD");
+                consoleView.println("STOP RECORDING");
                 isRecording = false;
-                ((Button) view).setText(R.string.start_recording);
-                view.setBackgroundColor(btnBackgroundColor);
             } else {
-                consoleView.println("START RECORD");
+                consoleView.println("START RECORDING");
                 isRecording = true;
                 Runnable delayedRunnable = new Runnable() {
                     @Override
                     public void run() {
                         while (isRecording) {
                             try {
-                                Thread.sleep(bufferTimeOut);
+                                Thread.sleep(BUFFER_TIME_OUT);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -379,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    if (consoleView.getSize() > maxConsoleLines) {
+                                    if (consoleView.getSize() > CONSOLE_LINES_LIMIT) {
                                         consoleView.clear();
                                         consoleView.println("CONSOLE CLEARED");
                                     }
@@ -394,9 +581,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 };
                 new Thread(delayedRunnable).start();
-                ((Button) view).setText(R.string.stop_recording);
-                view.setBackgroundColor(getColor(R.color.design_default_color_error));
             }
+            updateRecordingButtonView();
         } else {
             consoleView.println("CONNECTION IS NOT OPEN");
         }
