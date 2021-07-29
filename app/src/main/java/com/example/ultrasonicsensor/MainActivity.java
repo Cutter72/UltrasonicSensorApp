@@ -59,23 +59,43 @@ public class MainActivity extends AppCompatActivity {
     private byte[] readBuffer = new byte[BUFFER_SIZE];
     private final List<Measurement> allNonZeroMeasurements = new ArrayList<>();
     private final List<Measurement> allMeasurements = new ArrayList<>();
+    private final List<Measurement> filteredMeasurements = new ArrayList<>();
     private final List<Measurement> zeroMeasurements = new ArrayList<>();
     private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
 
     //count impacts
-    private double minDifference = 0.4;
-    private int avgMeasurements = 4;
-    private int minTimeIntervalBetweenImpactMillis = 1000; //50ms => 20 impacts / second
-    private int impacts = 0;
-    private long previousImpactTimestamp = 0;
+    private final double MIN_DIFFERENCE_DEFAULT = 0.4;
+    private final int AVG_MEASUREMENTS_DEFAULT = 4;
+    private final int MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT = 1000;
+    private final int IMPACTS_DEFAULT = 0;
     private final double[] minDiffValues = new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
     private final int[] avgMeasurementsValues = new int[]{3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    private double minDifference;
+    private int avgMeasurements;
+    private int minTimeIntervalBetweenImpactMillis; //50ms => 20 impacts / second
+    private int impacts;
+    private long previousImpactTimestamp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initializeFields();
         initializeLayout();
+    }
+
+    private void initializeFields() {
+        isRawDataLogEnabled = false;
+        rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
+        minDifference = 0.4;
+        avgMeasurements = 4;
+        minTimeIntervalBetweenImpactMillis = 1000; //50ms => 20 impacts / second
+        impacts = 0;
+        previousImpactTimestamp = 0;
+        minDifference = MIN_DIFFERENCE_DEFAULT;
+        avgMeasurements = AVG_MEASUREMENTS_DEFAULT;
+        minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT; //50ms => 20 impacts / second
+        impacts = IMPACTS_DEFAULT;
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -208,8 +228,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickOpenConnection(View view) {
         if (isOpened) {
-            isRecording = false;
             consoleView.println("---onClickCloseConnection");
+            isRecording = false;
             closeConnection();
         } else {
             consoleView.println("---onClickOpenConnection");
@@ -218,10 +238,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSaveDataToCsv(View view) {
-        if (allNonZeroMeasurements.size() == 0) {
-            consoleView.println("DATA NOT SAVED. NO MEASUREMENTS RECORDED.");
+        if (allMeasurements.size() == 0) {
+            consoleView.println("NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
         } else {
-            requestPermissions();
+            requestPermissionsForWrite();
         }
     }
 
@@ -250,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_ID = 1029;
 
-    private void requestPermissions() {
+    private void requestPermissionsForWrite() {
         ActivityCompat.requestPermissions(
                 this,
                 new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -278,18 +298,7 @@ public class MainActivity extends AppCompatActivity {
             findAllAvailableDriversFromAttachedDevices();
             if (availableDrivers.size() > 0) {
                 openConnectionToTheFirstAvailableDriver();
-                port = driver.getPorts().get(0); // Most devices have just one port (port 0)
-                try {
-                    port.open(connection);
-                    port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                    consoleView.println("PORT OPEN");
-                    isOpened = true;
-                    updateConnectionButtonView();
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-//                    CrashReporter.logException(ex);
-                    consoleView.println(ex);
-                }
+                openPort();
             } else {
                 consoleView.println("noDriversFound");
             }
@@ -297,6 +306,21 @@ public class MainActivity extends AppCompatActivity {
             ex.printStackTrace();
 //            CrashReporter.logException(ex);
             consoleView.println(ex.toString());
+        }
+    }
+
+    private void openPort() {
+        port = driver.getPorts().get(0); // Most devices have just one port (port 0)
+        try {
+            port.open(connection);
+            port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+            consoleView.println("PORT OPEN");
+            isOpened = true;
+            updateConnectionButtonView();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+//                    CrashReporter.logException(ex);
+            consoleView.println(ex);
         }
     }
 
