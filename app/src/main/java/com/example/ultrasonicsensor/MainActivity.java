@@ -54,9 +54,11 @@ public class MainActivity extends AppCompatActivity {
     private final int BUFFER_TIME_OUT = 100;
     private final int BUFFER_SIZE = 99;
     private final int MEASUREMENTS_IN_ONE_LINE = 18;
+    private final int MEASUREMENTS_BUFFER_SIZE = 5;
     private final int CONSOLE_LINES_LIMIT = 999;
     private boolean isRawDataLogEnabled = false;
-    private byte[] readBuffer = new byte[BUFFER_SIZE];
+    private byte[] readDataBuffer = new byte[BUFFER_SIZE];
+    private final List<Measurement> measurementsBuffer = new ArrayList<>();
     private final List<Measurement> allNonZeroMeasurements = new ArrayList<>();
     private final List<Measurement> allMeasurements = new ArrayList<>();
     private final List<Measurement> filteredMeasurements = new ArrayList<>();
@@ -378,15 +380,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bufferRead() {
-        readBuffer = new byte[BUFFER_SIZE];
+        readDataBuffer = new byte[BUFFER_SIZE];
         if (port != null) {
             try {
-                port.read(readBuffer, BUFFER_TIME_OUT);
+                port.read(readDataBuffer, BUFFER_TIME_OUT);
                 if (isRawDataLogEnabled) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            consoleView.println(Arrays.toString(readBuffer));
+                            consoleView.println(Arrays.toString(readDataBuffer));
                         }
                     });
                 }
@@ -399,8 +401,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void proceedInputDataFromSensor() {
-        for (byte e : readBuffer) {
+    private void processInputDataFromSensor() {
+        for (byte e : readDataBuffer) {
             if (e != 0) {
                 if (e == 13) {
                     if (rawSensorUnitsBuffer.size() == 5) {
@@ -459,14 +461,26 @@ public class MainActivity extends AppCompatActivity {
     private boolean mergeSensorRawDataIntoCentimeterMeasurement() {
         int sensorUnits = mergeDataIntoSensorUnits();
         double distance = calculateDistance(sensorUnits);
+        Measurement measurement = new Measurement(distance);
         if (sensorUnits > 0) {
-            allNonZeroMeasurements.add(new Measurement(distance));
+            allNonZeroMeasurements.add(measurement);
+            if (measurementsBuffer.size() == MEASUREMENTS_BUFFER_SIZE) {
+                measurementsBuffer.remove(0);
+                measurementsBuffer.add(measurement);
+                filterMeasurements();
+            } else {
+                measurementsBuffer.add(measurement);
+            }
             return true;
         } else {
-            zeroMeasurements.add(new Measurement(0));
+            zeroMeasurements.add(measurement);
         }
-        allMeasurements.add(new Measurement(distance));
+        allMeasurements.add(measurement);
         return false;
+    }
+
+    private void filterMeasurements() {
+        //todo impl
     }
 
     private int decodeDecimalNumber(byte b) {
@@ -575,13 +589,9 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         while (isRecording) {
-                            try {
-                                Thread.sleep(BUFFER_TIME_OUT);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
+                            waitForData();
                             MainActivity.instance.bufferRead();
-                            MainActivity.instance.proceedInputDataFromSensor();
+                            MainActivity.instance.processInputDataFromSensor();
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -604,6 +614,14 @@ public class MainActivity extends AppCompatActivity {
             updateRecordingButtonView();
         } else {
             consoleView.println("CONNECTION IS NOT OPEN");
+        }
+    }
+
+    private void waitForData() {
+        try {
+            Thread.sleep(BUFFER_TIME_OUT);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
