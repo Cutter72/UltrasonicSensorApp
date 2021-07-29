@@ -87,10 +87,6 @@ public class MainActivity extends AppCompatActivity {
     private void initializeFields() {
         isRawDataLogEnabled = false;
         rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
-        minDifference = 0.4;
-        avgMeasurements = 4;
-        minTimeIntervalBetweenImpactMillis = 1000; //50ms => 20 impacts / second
-        impacts = 0;
         previousImpactTimestamp = 0;
         minDifference = MIN_DIFFERENCE_DEFAULT;
         avgMeasurements = AVG_MEASUREMENTS_DEFAULT;
@@ -98,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
         impacts = IMPACTS_DEFAULT;
     }
 
-    @SuppressWarnings("ConstantConditions")
     private void initializeLayout() {
         instance = this;
         initializeConsoleView();
