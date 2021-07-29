@@ -45,18 +45,21 @@ public class MainActivity extends AppCompatActivity {
     private UsbDeviceConnection connection;
     private UsbSerialPort port;
 
-    //read and print data in the console view
+    //layout
+    private final int SEEKBAR_MAX_VALUE = 19;
     private ConsoleView consoleView;
     private int btnBackgroundColor;
+
+    //read and print data in the console view
+    private final int BUFFER_TIME_OUT = 100;
+    private final int BUFFER_SIZE = 99;
+    private final int MEASUREMENTS_IN_ONE_LINE = 18;
+    private final int CONSOLE_LINES_LIMIT = 999;
+    private boolean isRawDataLogEnabled = false;
+    private byte[] readBuffer = new byte[BUFFER_SIZE];
     private final List<Measurement> allNonZeroMeasurements = new ArrayList<>();
     private final List<Measurement> allMeasurements = new ArrayList<>();
     private final List<Measurement> zeroMeasurements = new ArrayList<>();
-    private final int bufferTimeOut = 100;
-    private final int bufferSize = 99;
-    private final int maxMeasurementsInLine = 18;
-    private final int maxConsoleLines = 999;
-    private boolean isRawDataLogEnabled = false;
-    private byte[] readBuffer = new byte[bufferSize];
     private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
 
     //count impacts
@@ -78,14 +81,23 @@ public class MainActivity extends AppCompatActivity {
     @SuppressWarnings("ConstantConditions")
     private void initializeLayout() {
         instance = this;
-        consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
-        consoleView.println("Console view created.");
+        initializeConsoleView();
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
         btnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
         updateIntervalValueTextView();
+        initializeSeekBar();
+        initializeNumberPickers();
+    }
+
+    private void initializeConsoleView() {
+        consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
+        consoleView.println("Console view created.");
+    }
+
+    private void initializeSeekBar() {
         SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
-        minTimeIntervalSeekBar.setMax(19);
+        minTimeIntervalSeekBar.setMax(SEEKBAR_MAX_VALUE);
         updateIntervalSeekBarView();
         minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -103,7 +115,9 @@ public class MainActivity extends AppCompatActivity {
                 updateIntervalValueTextView();
             }
         });
+    }
 
+    private void initializeNumberPickers() {
         NumberPicker minDifferencePicker = findViewById(R.id.minDifferencePicker);
         minDifferencePicker.setMinValue(0);
         minDifferencePicker.setMaxValue(minDiffValues.length - 1);
@@ -115,7 +129,6 @@ public class MainActivity extends AppCompatActivity {
                 setMinDiffValue(newVal);
             }
         });
-
         NumberPicker avgMeasurementsPicker = findViewById(R.id.avgMeasurementsPicker);
         avgMeasurementsPicker.setMinValue(0);
         avgMeasurementsPicker.setMaxValue(avgMeasurementsValues.length - 1);
@@ -346,10 +359,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void bufferRead() {
-        readBuffer = new byte[bufferSize];
+        readBuffer = new byte[BUFFER_SIZE];
         if (port != null) {
             try {
-                port.read(readBuffer, bufferTimeOut);
+                port.read(readBuffer, BUFFER_TIME_OUT);
                 if (isRawDataLogEnabled) {
                     runOnUiThread(new Runnable() {
                         @Override
@@ -376,7 +389,7 @@ public class MainActivity extends AppCompatActivity {
                             if (isImpactFound()) {
                                 runOnUiThread(this::updateImpactsCounterView);
                             }
-                            if ((allNonZeroMeasurements.size() % maxMeasurementsInLine == 0) ^ allNonZeroMeasurements.size() == 0) {
+                            if ((allNonZeroMeasurements.size() % MEASUREMENTS_IN_ONE_LINE == 0) ^ allNonZeroMeasurements.size() == 0) {
                                 runOnUiThread(this::printLatest18MeasurementsAndUpdateCounter);
                             }
                         } else {
@@ -463,7 +476,7 @@ public class MainActivity extends AppCompatActivity {
             consoleView.println("allMeasurements.size(): " + allNonZeroMeasurements.size());
         }
         consoleView.println();
-        for (int i = allNonZeroMeasurements.size() - maxMeasurementsInLine; i < allNonZeroMeasurements.size(); i++) {
+        for (int i = allNonZeroMeasurements.size() - MEASUREMENTS_IN_ONE_LINE; i < allNonZeroMeasurements.size(); i++) {
             consoleView.print(allNonZeroMeasurements.get(i).getCentimetersDistance() + ", ");
         }
     }
@@ -544,7 +557,7 @@ public class MainActivity extends AppCompatActivity {
                     public void run() {
                         while (isRecording) {
                             try {
-                                Thread.sleep(bufferTimeOut);
+                                Thread.sleep(BUFFER_TIME_OUT);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -553,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    if (consoleView.getSize() > maxConsoleLines) {
+                                    if (consoleView.getSize() > CONSOLE_LINES_LIMIT) {
                                         consoleView.clear();
                                         consoleView.println("CONSOLE CLEARED");
                                     }
