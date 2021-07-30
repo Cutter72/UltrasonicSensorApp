@@ -6,33 +6,29 @@ import java.util.List;
 
 public class Filter {
 
-    public List<Measurement> filterByMedian(List<Measurement> measurementsToFilter, double deviationInCentimeters) {
-        List<Measurement> buffer = new ArrayList<>(measurementsToFilter);
-        List<Measurement> measurementsToRemove = new ArrayList<>();
+    public List<Measurement> filterByMedian(List<Measurement> measurementsToFilter, double maxDeviationFromMedianInCentimeters) {
+        List<Measurement> filteredResult = new ArrayList<>(measurementsToFilter);
         double median;
-        int measurementsBufferSize = buffer.size();
-        Collections.sort(buffer);
+        int filteredOutMeasurements = 0;
+        int measurementsBufferSize = filteredResult.size();
+        Collections.sort(filteredResult);
         if (measurementsBufferSize % 2 == 0) {
             int index = measurementsBufferSize / 2 - 1;
-            median = (buffer.get(index).getCentimetersDistance() + buffer.get(++index).getCentimetersDistance()) / 2;
+            median = (filteredResult.get(index).getCentimetersDistance() + filteredResult.get(++index).getCentimetersDistance()) / 2;
         } else {
             int index = (measurementsBufferSize + 1) / 2 - 1;
-            median = buffer.get(index).getCentimetersDistance();
+            median = filteredResult.get(index).getCentimetersDistance();
         }
-        for (Measurement measurement : buffer) {
-            if (Math.abs(measurement.getCentimetersDistance() - median) > deviationInCentimeters) {
-                measurementsToRemove.add(measurement);
+        System.out.println("Median: " + median);
+        System.out.println("Max deviation: " + maxDeviationFromMedianInCentimeters);
+        for (Measurement measurement : measurementsToFilter) {
+            if (Math.abs(measurement.getCentimetersDistance() - median) > maxDeviationFromMedianInCentimeters) {
+                filteredOutMeasurements++;
+                filteredResult.remove(measurement);
+//                System.out.println("Measurement removed: " + measurement);
             }
         }
-        for (Measurement measurement : measurementsToRemove) {
-            buffer.remove(measurement);
-        }
-        return buffer;
-    }
-
-    public List<Measurement> filterAllZeros(List<Measurement> measurementsToFilter) {
-        List<Measurement> buffer = new ArrayList<>(measurementsToFilter);
-        buffer.removeAll(Collections.singletonList(new Measurement(0)));
-        return buffer;
+        System.out.println("Filtered out measurements: " + filteredOutMeasurements);
+        return filteredResult;
     }
 }

@@ -1,6 +1,7 @@
 package com.example.ultrasonicsensor;
 
 import java.util.Date;
+import java.util.Objects;
 
 public class Measurement implements Comparable<Measurement> {
     private final double centimetersDistance;
@@ -9,6 +10,25 @@ public class Measurement implements Comparable<Measurement> {
     public Measurement(double centimetersDistance) {
         this.centimetersDistance = centimetersDistance;
         this.time = new Date();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Measurement that = (Measurement) o;
+        return Double.compare(that.centimetersDistance, centimetersDistance) == 0 &&
+                Objects.equals(time, that.time);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(centimetersDistance, time);
+    }
+
+    @Override
+    public String toString() {
+        return "" + centimetersDistance;
     }
 
     public double getCentimetersDistance() {
