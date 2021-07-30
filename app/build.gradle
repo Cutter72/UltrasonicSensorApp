@@ -42,5 +42,8 @@ dependencies {
     implementation 'com.github.felHR85:UsbSerial:6.1.0'
 //    compileOnly 'com.google.android.things:androidthings:1.0'
 
+    //Local background crash reporter
     implementation 'com.balsikandar.android:crashreporter:1.1.0'
+    //CSV reader writer
+    implementation 'com.opencsv:opencsv:5.5.1'
 }
