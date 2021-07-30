@@ -426,7 +426,7 @@ public class MainActivity extends AppCompatActivity {
                             runOnUiThread(this::printLatest18MeasurementsAndUpdateCounter);
                         }
                     }
-                    rawSensorUnitsBuffer = new LinkedList<>();
+                    rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
                 } else {
                     int decodedDecimalNumber = decodeDecimalNumber(e);
                     rawSensorUnitsBuffer.add(decodedDecimalNumber);
