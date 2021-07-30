@@ -50,20 +50,24 @@ public class MainActivity extends AppCompatActivity {
     private ConsoleView consoleView;
     private int btnBackgroundColor;
 
-    //read and print data in the console view
+    //read and filter data
+    private static final double MAX_MEASUREMENT_DEVIATION = 1.0; // in centimeters
+    private final int MEASUREMENTS_BUFFER_SIZE = 5;
     private final int BUFFER_TIME_OUT = 100;
     private final int BUFFER_SIZE = 99;
-    private final int MEASUREMENTS_IN_ONE_LINE = 18;
-    private final int MEASUREMENTS_BUFFER_SIZE = 5;
-    private final int CONSOLE_LINES_LIMIT = 999;
-    private boolean isRawDataLogEnabled = false;
     private byte[] readDataBuffer = new byte[BUFFER_SIZE];
+    private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
     private final List<Measurement> measurementsBuffer = new ArrayList<>();
     private final List<Measurement> allNonZeroMeasurements = new ArrayList<>();
     private final List<Measurement> allMeasurements = new ArrayList<>();
     private final List<Measurement> filteredMeasurements = new ArrayList<>();
+    private final List<Measurement> filteredOutMeasurements = new ArrayList<>();
     private final List<Measurement> zeroMeasurements = new ArrayList<>();
-    private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
+
+    // print data in the console view
+    private final int MEASUREMENTS_IN_ONE_LINE = 18;
+    private final int CONSOLE_LINES_LIMIT = 999;
+    private boolean isRawDataLogEnabled = false;
 
     //count impacts
     private final double MIN_DIFFERENCE_DEFAULT = 0.4;
@@ -243,6 +247,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void createDataFile() {
+        //todo think how to save all data
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
         FileOperations.prepareDirectory(directory.getAbsolutePath());
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
@@ -406,20 +411,17 @@ public class MainActivity extends AppCompatActivity {
             if (e != 0) {
                 if (e == 13) {
                     if (rawSensorUnitsBuffer.size() == 5) {
-                        if (mergeSensorRawDataIntoCentimeterMeasurement()) {
-                            if (isImpactFound()) {
-                                runOnUiThread(this::updateImpactsCounterView);
-                            }
-                            if ((allNonZeroMeasurements.size() % MEASUREMENTS_IN_ONE_LINE == 0) ^ allNonZeroMeasurements.size() == 0) {
-                                runOnUiThread(this::printLatest18MeasurementsAndUpdateCounter);
-                            }
-                        } else {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    consoleView.print("-SignalLost");
-                                }
-                            });
+                        Measurement measurement = mergeSensorRawDataIntoCentimeterMeasurement();
+                        allMeasurements.add(measurement);
+                        fillMeasurementsBuffer(measurement);
+                        if (isMeasurementsBufferFull()) {
+                            filterMeasurements();
+                        }
+                        if (isImpactFound()) {
+                            runOnUiThread(this::updateImpactsCounterView);
+                        }
+                        if ((allNonZeroMeasurements.size() % MEASUREMENTS_IN_ONE_LINE == 0) ^ allNonZeroMeasurements.size() == 0) {
+                            runOnUiThread(this::printLatest18MeasurementsAndUpdateCounter);
                         }
                     }
                     rawSensorUnitsBuffer = new LinkedList<>();
@@ -430,6 +432,22 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 break;
             }
+        }
+    }
+
+    private boolean isMeasurementsBufferFull() {
+        return measurementsBuffer.size() == MEASUREMENTS_BUFFER_SIZE;
+    }
+
+    private void fillMeasurementsBuffer(Measurement measurement) {
+        if (measurement.getCentimetersDistance() > 0) {
+            if (isMeasurementsBufferFull()) {
+                measurementsBuffer.remove(0);
+            }
+            measurementsBuffer.add(measurement);
+        } else {
+            filteredOutMeasurements.add(measurement);
+            zeroMeasurements.add(measurement);
         }
     }
 
@@ -458,29 +476,47 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
     }
 
-    private boolean mergeSensorRawDataIntoCentimeterMeasurement() {
+    private Measurement mergeSensorRawDataIntoCentimeterMeasurement() {
         int sensorUnits = mergeDataIntoSensorUnits();
         double distance = calculateDistance(sensorUnits);
-        Measurement measurement = new Measurement(distance);
-        if (sensorUnits > 0) {
-            allNonZeroMeasurements.add(measurement);
-            if (measurementsBuffer.size() == MEASUREMENTS_BUFFER_SIZE) {
-                measurementsBuffer.remove(0);
-                measurementsBuffer.add(measurement);
-                filterMeasurements();
-            } else {
-                measurementsBuffer.add(measurement);
-            }
-            return true;
-        } else {
-            zeroMeasurements.add(measurement);
-        }
-        allMeasurements.add(measurement);
-        return false;
+        return new Measurement(distance);
     }
 
     private void filterMeasurements() {
         //todo impl
+        List<Measurement> buffer = new ArrayList<>(measurementsBuffer);
+        Measurement oldestMeasurement = buffer.get(0);
+        Measurement min = oldestMeasurement;
+        Measurement max = oldestMeasurement;
+        double sum = 0;
+        double avg = -1;
+        double median = -1;
+        for (Measurement measurement : buffer) {
+            sum += measurement.getCentimetersDistance();
+            if (measurement.getCentimetersDistance() < min.getCentimetersDistance()) {
+                min = measurement;
+            } else if (measurement.getCentimetersDistance() > max.getCentimetersDistance()) {
+                max = measurement;
+            }
+        }
+        int measurementsBufferSize = buffer.size();
+        avg = sum / measurementsBufferSize;
+        Collections.sort(buffer);
+        if (measurementsBufferSize % 2 == 0) {
+            int index = measurementsBufferSize / 2 - 1;
+            median = (buffer.get(index).getCentimetersDistance() + buffer.get(++index).getCentimetersDistance()) / 2;
+        } else {
+            int index = (measurementsBufferSize + 1) / 2 - 1;
+            median = buffer.get(index).getCentimetersDistance();
+        }
+        for (Measurement measurement : buffer) {
+            if (Math.abs(measurement.getCentimetersDistance() - median) > MAX_MEASUREMENT_DEVIATION) {
+                filteredOutMeasurements.add(measurement);
+                measurementsBuffer.remove(measurement);
+            } else {
+                filteredMeasurements.add(measurement);
+            }
+        }
     }
 
     private int decodeDecimalNumber(byte b) {

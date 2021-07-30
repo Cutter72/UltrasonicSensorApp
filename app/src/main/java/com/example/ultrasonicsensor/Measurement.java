@@ -2,7 +2,7 @@ package com.example.ultrasonicsensor;
 
 import java.util.Date;
 
-public class Measurement {
+public class Measurement implements Comparable<Measurement> {
     private final double centimetersDistance;
     private final Date time;
 
@@ -17,5 +17,10 @@ public class Measurement {
 
     public Date getTime() {
         return time;
+    }
+
+    @Override
+    public int compareTo(Measurement measurement) {
+        return Double.compare(this.centimetersDistance, measurement.getCentimetersDistance());
     }
 }
