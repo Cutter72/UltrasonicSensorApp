@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Filter {
+public class MeasurementsFilter {
 
     public List<Measurement> filterByMedian(List<Measurement> measurementsToFilter, double maxDeviationFromMedianInCentimeters) {
         List<Measurement> filteredResult = new ArrayList<>(measurementsToFilter);

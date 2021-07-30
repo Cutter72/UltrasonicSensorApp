@@ -10,15 +10,15 @@ import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
-public class FilterTest {
-    private Filter filter;
+public class MeasurementsFilterTest {
+    private MeasurementsFilter measurementsFilter;
     private final int MEASUREMENTS_QUANTITY = 100;
     private List<Measurement> inputMeasurements;
 
     @Before
     public void setUp() {
         //GIVEN
-        filter = new Filter();
+        measurementsFilter = new MeasurementsFilter();
         inputMeasurements = new ArrayList<>();
         int badMeasurements = 0;
         Random random = new Random();
@@ -43,7 +43,7 @@ public class FilterTest {
     @Test
     public void filterByMedian() {
         //WHEN
-        List<Measurement> result = filter.filterByMedian(inputMeasurements, 0.4);
+        List<Measurement> result = measurementsFilter.filterByMedian(inputMeasurements, 0.4);
         //THEN
         assertEquals(MEASUREMENTS_QUANTITY, result.size());
     }
