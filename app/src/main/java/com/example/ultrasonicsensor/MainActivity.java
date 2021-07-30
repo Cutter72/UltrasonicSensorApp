@@ -248,17 +248,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void createDataFile() {
         //todo think how to save all data
+        FileManager fileManager = new FileManager();
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
-        FileOperations.prepareDirectory(directory.getAbsolutePath());
+        fileManager.prepareDirectory(directory.getAbsolutePath());
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
                 impacts,
-                allNonZeroMeasurements.size(),
+                allMeasurements.size(),
                 minTimeIntervalBetweenImpactMillis,
                 minDifference,
                 avgMeasurements));
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < allNonZeroMeasurements.size(); i++) {
-            Measurement measurement = allNonZeroMeasurements.get(i);
+        for (int i = 0; i < allMeasurements.size(); i++) {
+            Measurement measurement = allMeasurements.get(i);
             sb.append(i + 1);
             sb.append(",");
             sb.append(measurement.getTime().getTime());
@@ -266,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
             sb.append(measurement.getCentimetersDistance());
             sb.append("\n");
         }
-        FileOperations.writeToFile(outputFile, sb.toString());
+        fileManager.writeToFile(outputFile, sb.toString());
         consoleView.println(String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
     }
 
@@ -306,7 +307,6 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-//            CrashReporter.logException(ex);
             consoleView.println(ex.toString());
         }
     }

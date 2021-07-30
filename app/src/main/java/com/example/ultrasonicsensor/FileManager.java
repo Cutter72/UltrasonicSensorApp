@@ -6,9 +6,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public final class FileOperations {
+public class FileManager {
 
-    public static File prepareDirectory(String pathToFile) {
+    public File prepareDirectory(String pathToFile) {
         File filePath = new File(pathToFile);
         if (!filePath.exists()) {
             filePath.mkdirs();
@@ -16,7 +16,7 @@ public final class FileOperations {
         return filePath;
     }
 
-    public static void writeToFile(File file, String data) {
+    public void writeToFile(File file, String data) {
         try {
             FileWriter fileWriter = new FileWriter(file);
             PrintWriter printWriter = new PrintWriter(fileWriter);
