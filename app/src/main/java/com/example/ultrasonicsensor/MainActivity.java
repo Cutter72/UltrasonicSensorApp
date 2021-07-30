@@ -36,9 +36,10 @@ public class MainActivity extends AppCompatActivity {
     private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value in centimeters from ToughSonic Sensor 12 data sheet
     public static MainActivity instance;
     public static boolean isRecording = false;
-    public static boolean isOpened = false;
 
     //RS232 connection
+    private SensorManager sensorManager;
+    public static boolean isOpened = false;
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
     private UsbSerialDriver driver;
@@ -91,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeFields() {
+        sensorManager = new SensorManager(this);
         isRawDataLogEnabled = false;
         rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
         previousImpactTimestamp = 0;
