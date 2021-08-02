@@ -137,8 +137,8 @@ public class SensorManager {
         List<Measurement> measurements = new ArrayList<>();
         byte[] rawDataFromSensor = readRawDataFromSensor();
         if (isSensorConnectionOpen()) {
-            SensorDecoder sensorDecoder = new SensorDecoder();
-            measurements = sensorDecoder.decodeMeasurementsFromSensor(rawDataFromSensor);
+            SensorDataDecoder sensorDataDecoder = new SensorDataDecoder();
+            measurements = sensorDataDecoder.decodeDataFromSensor(rawDataFromSensor);
         } else {
             if (reconnectToSensor()) {
                 readMeasurementsFromSensor();
