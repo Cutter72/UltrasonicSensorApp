@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeFields() {
-        sensorManager = new SensorManager(this);
+        sensorManager = new SensorManager((UsbManager) getSystemService(USB_SERVICE));
         isRawDataLogEnabled = false;
         rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
         previousImpactTimestamp = 0;
@@ -490,11 +490,8 @@ public class MainActivity extends AppCompatActivity {
         Measurement oldestMeasurement = buffer.get(0);
         Measurement min = oldestMeasurement;
         Measurement max = oldestMeasurement;
-        double sum = 0;
-        double avg = -1;
-        double median = -1;
+        double median;
         for (Measurement measurement : buffer) {
-            sum += measurement.getCentimetersDistance();
             if (measurement.getCentimetersDistance() < min.getCentimetersDistance()) {
                 min = measurement;
             } else if (measurement.getCentimetersDistance() > max.getCentimetersDistance()) {
@@ -502,7 +499,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         int measurementsBufferSize = buffer.size();
-        avg = sum / measurementsBufferSize;
         Collections.sort(buffer);
         if (measurementsBufferSize % 2 == 0) {
             int index = measurementsBufferSize / 2 - 1;
@@ -605,7 +601,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @SuppressWarnings({"BusyWait"})
     public void onClickRecording(View view) {
         consoleView.println("---onClickRecording");
         if (port != null) {
