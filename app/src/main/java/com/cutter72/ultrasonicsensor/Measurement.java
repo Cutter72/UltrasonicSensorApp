@@ -1,4 +1,6 @@
-package com.example.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor;
+
+import androidx.annotation.NonNull;
 
 import java.util.Date;
 import java.util.Objects;
@@ -26,6 +28,7 @@ public class Measurement implements Comparable<Measurement> {
         return Objects.hash(centimetersDistance, time);
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "" + centimetersDistance;

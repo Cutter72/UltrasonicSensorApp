@@ -1,4 +1,4 @@
-package com.example.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor;
 
 import android.content.Context;
 import android.view.View;
