@@ -1,6 +1,7 @@
 package com.example.ultrasonicsensor;
 
 import android.content.Context;
+import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 
@@ -10,169 +11,234 @@ import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class for connect and read data from Senix ToughSonic sensor via USB RS-232 serial port
+ * Class for connect and read data from Senix ToughSonic sensor via USB RS-232 port. Sensor must be
+ * set to ASCII streaming mode.
  */
 public class SensorManager {
     private final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value in centimeters from ToughSonic Sensor 12 data sheet
-    //RS-232 connection params
+    // RS-232 connection params
     private final int BAUD_RATE = 9600;
     private final int DATA_BITS = 8;
     private final int BUFFER_TIME_OUT = 100;
     private final int BUFFER_SIZE = 99;
+    private final int CR = 13; // Carriage return, end of data sequence
+    // usb device
+    private final String MANUFACTURER_NAME = "FTDI";
+    private final String PRODUCT_NAME = "FT232R USB UART";
 
     private final Context context;
     private UsbManager manager;
-    private UsbSerialDriver driver;
-    private UsbDeviceConnection connection;
-    private UsbSerialPort port;
-    private List<UsbSerialDriver> availableDrivers;
-    private List<Measurement> allMeasurements;
+    private UsbSerialDriver sensorUsbDeviceDriver;
+    private UsbDevice sensorUsbDevice;
+    private UsbDeviceConnection sensorUsbDeviceConnection;
+    private UsbSerialPort sensorUsbDevicePort;
+    private int MANTISSA_POWER_4 = 10000;
+    private int MANTISSA_POWER_3 = 1000;
+    private int MANTISSA_POWER_2 = 100;
+    private int MANTISSA_POWER_1 = 10;
+    private int MANTISSA_POWER_0 = 1;
 
     public SensorManager(Context context) {
         this.context = context;
     }
 
-    public boolean isSensorConnected() {
-        if (port != null) {
-            return port.isOpen();
+    public boolean isSensorConnectionOpen() {
+        System.out.println("isSensorConnectionOpen");
+        if (sensorUsbDevicePort != null) {
+            return sensorUsbDevicePort.isOpen();
         }
         return false;
     }
 
-    public void openConnectionToSensor() {
-        try {
-            if (availableDrivers.size() > 0) {
-                openConnectionToTheFirstAvailableDriver();
+    public boolean openConnectionToSensor() {
+        System.out.println("openConnectionToSensor");
+        if (openSensorPort()) {
+            return true;
+        } else {
+            if (findSensor()) {
+                if (openSensorConnection()) {
+                    if (openSensorPort()) {
+                        return true;
+                    } else {
+                        System.out.println("cannotOpenPort");
+                    }
+                } else {
+                    System.out.println("cannotConnectToUsbDevice");
+                }
             } else {
-                findAllAvailableUsbDriversFromAttachedDevices();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            CrashReporter.logException(e);
-        }
-    }
-
-    private void findAllAvailableUsbDriversFromAttachedDevices() {
-        // Find all available drivers from attached devices.
-        System.out.println("findAllAvailableDriversFromAttachedDevices");
-        manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-        availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-        if (availableDrivers.isEmpty()) {
-            System.out.println("noDriversFound");
-        } else {
-            for (int i = 0; i < availableDrivers.size(); i++) {
-                UsbSerialDriver availableDriver = availableDrivers.get(i);
-                System.out.println("---device---" + i);
-                System.out.println("availableDriver device: " + availableDriver.getDevice());
-                System.out.println("availableDriver ports: " + availableDriver.getPorts());
-                System.out.println("------");
+                System.out.println("sensorNotConnected");
             }
         }
+        return false;
     }
 
-    private void openConnectionToTheFirstAvailableDriver() {
-        // Open a connection to the first available driver.
-        System.out.println("openConnectionToTheFirstAvailableDriver");
-        driver = availableDrivers.get(0);
-        connection = manager.openDevice(driver.getDevice());
-        if (connection != null) {
-            System.out.println("CONNECTION OPEN");
-            openPort();
-        } else {
-            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            System.out.println("connection == null");
+    public void closeConnectionToSensor() {
+        closeSensorPort();
+        closeSensorUsbDeviceConnection();
+        System.out.println("CONNECTION CLOSED");
+    }
+
+    private void closeSensorUsbDeviceConnection() {
+        if (sensorUsbDeviceConnection != null) {
+            sensorUsbDeviceConnection.close();
         }
     }
 
-    private void openPort() {
-        port = driver.getPorts().get(0); // Most devices have just one port (port 0)
-        try {
-            port.open(connection);
-            port.setParameters(BAUD_RATE, DATA_BITS, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-            System.out.println("PORT OPEN");
-        } catch (IOException e) {
-            e.printStackTrace();
-            CrashReporter.logException(e);
-        }
-    }
-
-    public void closeConnection() {
-        if (connection != null) {
+    private void closeSensorPort() {
+        if (sensorUsbDevicePort != null) {
             try {
-                port.close();
+                sensorUsbDevicePort.close();
             } catch (IOException e) {
                 e.printStackTrace();
                 CrashReporter.logException(e);
             }
-            connection.close();
         }
-        System.out.println("CONNECTION CLOSED");
     }
 
-    private byte[] readSensorData() {
-        byte[] readDataBuffer = new byte[BUFFER_SIZE];
-        if (port != null) {
-            if (port.isOpen()) {
+    private boolean openSensorPort() {
+        System.out.println("openSensorPort");
+        sensorUsbDevicePort = sensorUsbDeviceDriver.getPorts().get(0);
+        if (sensorUsbDevicePort != null) {
+            if (sensorUsbDeviceConnection != null) {
                 try {
-                    port.read(readDataBuffer, BUFFER_TIME_OUT);
-                } catch (IOException | NullPointerException e) {
+                    sensorUsbDevicePort.open(sensorUsbDeviceConnection);
+                    sensorUsbDevicePort.setParameters(BAUD_RATE, DATA_BITS, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+                    System.out.println("USB DEVICE PORT OPEN");
+                    return true;
+                } catch (IOException e) {
                     e.printStackTrace();
                     CrashReporter.logException(e);
+                    return false;
                 }
             } else {
-                System.out.println("port.isOpen == false");
+                System.out.println("sensorUsbDeviceConnection == null");
+                return false;
             }
         } else {
-            openConnectionToSensor();
+            System.out.println("sensorUsbDevicePort == null");
+            return false;
         }
-        return readDataBuffer;
     }
 
-    private void processInputDataFromSensor() {
-        byte[] readDataBuffer = readSensorData();
-        List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
-        for (byte b : readDataBuffer) {
-            if (b != 0) {
-                if (b == 13) {
-                    if (rawSensorUnitsBuffer.size() == 5) {
-                        Measurement measurement = mergeSensorRawDataIntoCentimeterMeasurement(rawSensorUnitsBuffer);
-                        allMeasurements.add(measurement);
+    private boolean openSensorConnection() {
+        System.out.println("openSensorUsbDeviceConnection");
+        if (manager != null) {
+            if (sensorUsbDevice != null) {
+                sensorUsbDeviceConnection = manager.openDevice(sensorUsbDevice);
+                System.out.println("USB DEVICE CONNECTION OPEN");
+                return true;
+            } else {
+                System.out.println("sensorUsbDevice == null");
+                return false;
+            }
+        } else {
+            System.out.println("manager == null");
+            return false;
+        }
+    }
+
+    private boolean findSensor() {
+        System.out.println("findSensor");
+        manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+        if (manager != null) {
+            for (UsbSerialDriver availableDriver : UsbSerialProber.getDefaultProber().findAllDrivers(manager)) {
+                UsbDevice usbDevice = availableDriver.getDevice();
+                if (MANUFACTURER_NAME.equals(usbDevice.getManufacturerName())
+                        && PRODUCT_NAME.equals(usbDevice.getProductName())) {
+                    System.out.println("SensorUsbDeviceFound");
+                    sensorUsbDeviceDriver = availableDriver;
+                    sensorUsbDevice = usbDevice;
+                    return true;
+                }
+            }
+        } else {
+            System.out.println("manager == null");
+            return false;
+        }
+        System.out.println("noSensorUsbDeviceFound");
+        return false;
+    }
+
+    private byte[] readRawDataFromSensor() {
+        System.out.println("readSensorData");
+        byte[] rawDataFromSensor = new byte[BUFFER_SIZE];
+        try {
+            sensorUsbDevicePort.read(rawDataFromSensor, BUFFER_TIME_OUT);
+        } catch (IOException | NullPointerException e) {
+            e.printStackTrace();
+            CrashReporter.logException(e);
+            return null;
+        }
+        return rawDataFromSensor;
+    }
+
+    public List<Measurement> readMeasurementsFromSensor() {
+        System.out.println("readMeasurementsFromSensor");
+        List<Measurement> measurements = new ArrayList<>();
+        byte[] rawDataFromSensor = readRawDataFromSensor();
+        if (isSensorConnectionOpen()) {
+            if (rawDataFromSensor != null) {
+                List<Integer> rawSensorUnitsBuffer = new ArrayList<>();
+                for (byte b : rawDataFromSensor) {
+                    if (b != 0) {
+                        if (b == CR) {
+                            if (rawSensorUnitsBuffer.size() == 5) {
+                                Measurement measurement = decodeMeasurement(rawSensorUnitsBuffer);
+                                measurements.add(measurement);
+                            }
+                            rawSensorUnitsBuffer.clear();
+                        } else {
+                            int decodedDecimalNumber = decodeDecimalNumber(b);
+                            rawSensorUnitsBuffer.add(decodedDecimalNumber);
+                        }
+                    } else {
+                        break;
                     }
-                    rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
-                } else {
-                    int decodedDecimalNumber = decodeDecimalNumber(b);
-                    rawSensorUnitsBuffer.add(decodedDecimalNumber);
                 }
             } else {
-                break;
+                System.out.println("rawDataFromSensor == null");
             }
+        } else {
+            reconnectToSensor();
+        }
+        return measurements;
+    }
+
+    private void reconnectToSensor() {
+        if (openConnectionToSensor()) {
+            System.out.println("reconnectionToSensorSuccess");
+        } else {
+            System.out.println("reconnectionToSensorFailed");
         }
     }
 
-    private Measurement mergeSensorRawDataIntoCentimeterMeasurement(List<Integer> rawSensorUnitsBuffer) {
-        int sensorUnits = mergeDataIntoSensorUnits(rawSensorUnitsBuffer);
-        double distance = calculateDistance(sensorUnits);
+    private Measurement decodeMeasurement(List<Integer> rawSensorUnitsBuffer) {
+        System.out.println("mergeSensorRawDataIntoCentimeterMeasurement");
+        int sensorUnits = decodeSensorUnits(rawSensorUnitsBuffer);
+        double distance = decodeDistance(sensorUnits);
         return new Measurement(distance);
     }
 
     private int decodeDecimalNumber(byte b) {
+        System.out.println("decodeDecimalNumber");
         return b - 48;
     }
 
-    private double calculateDistance(int sensorUnits) {
+    private double decodeDistance(int sensorUnits) {
+        System.out.println("decodeDistance");
         return Math.round(sensorUnits * CENTIMETERS_UNIT_FACTOR * 100) / 100.0;
     }
 
-    private int mergeDataIntoSensorUnits(List<Integer> rawSensorUnitsBuffer) {
-        return rawSensorUnitsBuffer.get(0) * 10000 +
-                rawSensorUnitsBuffer.get(1) * 1000 +
-                rawSensorUnitsBuffer.get(2) * 100 +
-                rawSensorUnitsBuffer.get(3) * 10 +
-                rawSensorUnitsBuffer.get(4);
+    private int decodeSensorUnits(List<Integer> rawSensorUnitsBuffer) {
+        System.out.println("decodeSensorUnits");
+        return rawSensorUnitsBuffer.get(0) * MANTISSA_POWER_4 + // tens thousands
+                rawSensorUnitsBuffer.get(1) * MANTISSA_POWER_3 + // thousands
+                rawSensorUnitsBuffer.get(2) * MANTISSA_POWER_2 + // hundreds
+                rawSensorUnitsBuffer.get(3) * MANTISSA_POWER_1 + // tens
+                rawSensorUnitsBuffer.get(4) * MANTISSA_POWER_0; // integers
     }
 }
