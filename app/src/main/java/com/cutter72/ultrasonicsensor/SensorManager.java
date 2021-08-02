@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class for connect and read data from Senix ToughSonic sensor via USB RS-232 port. Sensor must be
- * set to ASCII streaming mode.
+ * Class for connect and read data from Senix ToughSonic sensor via USB UART RS-232 port. Sensor
+ * must be set to ASCII streaming mode.
  */
 public class SensorManager {
     // RS-232 connection params
@@ -32,10 +32,14 @@ public class SensorManager {
     private UsbSerialDriver sensorUsbDeviceDriver;
     private UsbDevice sensorUsbDevice;
     private UsbDeviceConnection sensorUsbDeviceConnection;
-    private UsbSerialPort sensorUsbDevicePort;
+    private UsbSerialPort sensorUsbSerialPort;
 
     public SensorManager(UsbManager usbManager) {
         this.usbManager = usbManager;
+    }
+
+    public UsbSerialPort getSensorUsbSerialPort() {
+        return sensorUsbSerialPort;
     }
 
     public boolean openConnectionToSensor() {
@@ -63,8 +67,8 @@ public class SensorManager {
 
     public boolean isSensorConnectionOpen() {
         System.out.println("isSensorConnectionOpen");
-        if (sensorUsbDevicePort != null) {
-            return sensorUsbDevicePort.isOpen();
+        if (sensorUsbSerialPort != null) {
+            return sensorUsbSerialPort.isOpen();
         }
         return false;
     }
@@ -72,8 +76,13 @@ public class SensorManager {
     private boolean findSensor() {
         System.out.println("findSensor");
         if (usbManager != null) {
+            int i = 0;
             for (UsbSerialDriver availableDriver : UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)) {
                 UsbDevice usbDevice = availableDriver.getDevice();
+                System.out.println("---device-found---" + i);
+                System.out.println("availableDriver device: " + availableDriver.getDevice());
+                System.out.println("availableDriver ports: " + availableDriver.getPorts());
+                System.out.println("------");
                 if (MANUFACTURER_NAME.equals(usbDevice.getManufacturerName())
                         && PRODUCT_NAME.equals(usbDevice.getProductName())) {
                     System.out.println("SensorUsbDeviceFound");
@@ -81,6 +90,7 @@ public class SensorManager {
                     sensorUsbDevice = usbDevice;
                     return true;
                 }
+                i++;
             }
         } else {
             System.out.println("manager == null");
@@ -109,12 +119,12 @@ public class SensorManager {
 
     private boolean openSensorPort() {
         System.out.println("openSensorPort");
-        sensorUsbDevicePort = sensorUsbDeviceDriver.getPorts().get(0);
-        if (sensorUsbDevicePort != null) {
+        sensorUsbSerialPort = sensorUsbDeviceDriver.getPorts().get(0);
+        if (sensorUsbSerialPort != null) {
             if (sensorUsbDeviceConnection != null) {
                 try {
-                    sensorUsbDevicePort.open(sensorUsbDeviceConnection);
-                    sensorUsbDevicePort.setParameters(BAUD_RATE, DATA_BITS, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+                    sensorUsbSerialPort.open(sensorUsbDeviceConnection);
+                    sensorUsbSerialPort.setParameters(BAUD_RATE, DATA_BITS, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
                     System.out.println("USB DEVICE PORT OPEN");
                     return true;
                 } catch (IOException e) {
@@ -153,7 +163,7 @@ public class SensorManager {
         System.out.println("readSensorData");
         byte[] rawDataFromSensor = new byte[BUFFER_SIZE];
         try {
-            sensorUsbDevicePort.read(rawDataFromSensor, BUFFER_TIME_OUT);
+            sensorUsbSerialPort.read(rawDataFromSensor, BUFFER_TIME_OUT);
         } catch (IOException | NullPointerException e) {
             e.printStackTrace();
             CrashReporter.logException(e);
@@ -179,9 +189,9 @@ public class SensorManager {
     }
 
     private void closeSensorPort() {
-        if (sensorUsbDevicePort != null) {
+        if (sensorUsbSerialPort != null) {
             try {
-                sensorUsbDevicePort.close();
+                sensorUsbSerialPort.close();
             } catch (IOException e) {
                 e.printStackTrace();
                 CrashReporter.logException(e);
