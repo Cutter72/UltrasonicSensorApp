@@ -273,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
             sb.append(",");
             sb.append(measurement.getTime().getTime());
             sb.append(",");
-            sb.append(measurement.getCentimetersDistance());
+            sb.append(measurement.getDistanceCentimeters());
             sb.append("\n");
         }
         fileManager.writeToFile(outputFile, sb.toString());
@@ -449,7 +449,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fillMeasurementsBuffer(Measurement measurement) {
-        if (measurement.getCentimetersDistance() > 0) {
+        if (measurement.getDistanceCentimeters() > 0) {
             if (isMeasurementsBufferFull()) {
                 measurementsBuffer.remove(0);
             }
@@ -464,10 +464,10 @@ public class MainActivity extends AppCompatActivity {
         if (allNonZeroMeasurements.size() > avgMeasurements) {
             double sum = 0;
             for (int i = allNonZeroMeasurements.size() - avgMeasurements - 1; i < allNonZeroMeasurements.size() - 1; i++) {
-                sum += allNonZeroMeasurements.get(i).getCentimetersDistance();
+                sum += allNonZeroMeasurements.get(i).getDistanceCentimeters();
             }
             double averageFromPreviousXMeasurements = sum / avgMeasurements;
-            double differenceToCheck = averageFromPreviousXMeasurements - allNonZeroMeasurements.get(allNonZeroMeasurements.size() - 1).getCentimetersDistance();
+            double differenceToCheck = averageFromPreviousXMeasurements - allNonZeroMeasurements.get(allNonZeroMeasurements.size() - 1).getDistanceCentimeters();
             if (differenceToCheck > minDifference) {
                 long currentMillis = System.currentTimeMillis();
                 long timeDifference = currentMillis - previousImpactTimestamp;
@@ -499,9 +499,9 @@ public class MainActivity extends AppCompatActivity {
         Measurement max = oldestMeasurement;
         double median;
         for (Measurement measurement : buffer) {
-            if (measurement.getCentimetersDistance() < min.getCentimetersDistance()) {
+            if (measurement.getDistanceCentimeters() < min.getDistanceCentimeters()) {
                 min = measurement;
-            } else if (measurement.getCentimetersDistance() > max.getCentimetersDistance()) {
+            } else if (measurement.getDistanceCentimeters() > max.getDistanceCentimeters()) {
                 max = measurement;
             }
         }
@@ -509,13 +509,13 @@ public class MainActivity extends AppCompatActivity {
         Collections.sort(buffer);
         if (measurementsBufferSize % 2 == 0) {
             int index = measurementsBufferSize / 2 - 1;
-            median = (buffer.get(index).getCentimetersDistance() + buffer.get(++index).getCentimetersDistance()) / 2;
+            median = (buffer.get(index).getDistanceCentimeters() + buffer.get(++index).getDistanceCentimeters()) / 2;
         } else {
             int index = (measurementsBufferSize + 1) / 2 - 1;
-            median = buffer.get(index).getCentimetersDistance();
+            median = buffer.get(index).getDistanceCentimeters();
         }
         for (Measurement measurement : buffer) {
-            if (Math.abs(measurement.getCentimetersDistance() - median) > MAX_MEASUREMENT_DEVIATION) {
+            if (Math.abs(measurement.getDistanceCentimeters() - median) > MAX_MEASUREMENT_DEVIATION) {
                 filteredOutMeasurements.add(measurement);
                 measurementsBuffer.remove(measurement);
             } else {
@@ -551,7 +551,7 @@ public class MainActivity extends AppCompatActivity {
         }
         consoleView.println();
         for (int i = allNonZeroMeasurements.size() - MEASUREMENTS_IN_ONE_LINE; i < allNonZeroMeasurements.size(); i++) {
-            consoleView.print(allNonZeroMeasurements.get(i).getCentimetersDistance() + ", ");
+            consoleView.print(allNonZeroMeasurements.get(i).getDistanceCentimeters() + ", ");
         }
     }
 

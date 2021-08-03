@@ -6,36 +6,24 @@ import java.util.Date;
 import java.util.Objects;
 
 public class Measurement implements Comparable<Measurement> {
-    private final double centimetersDistance;
+    private static int nextId = 0;
+    private final int id;
+    private final double distanceCentimeters;
     private final Date time;
 
-    public Measurement(double centimetersDistance) {
-        this.centimetersDistance = centimetersDistance;
+    public Measurement(double distanceCentimeters) {
+        this.distanceCentimeters = distanceCentimeters;
         this.time = new Date();
+        this.id = nextId;
+        nextId++;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Measurement that = (Measurement) o;
-        return Double.compare(that.centimetersDistance, centimetersDistance) == 0 &&
-                Objects.equals(time, that.time);
+    public int getId() {
+        return id;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(centimetersDistance, time);
-    }
-
-    @NonNull
-    @Override
-    public String toString() {
-        return "" + centimetersDistance;
-    }
-
-    public double getCentimetersDistance() {
-        return centimetersDistance;
+    public double getDistanceCentimeters() {
+        return distanceCentimeters;
     }
 
     public Date getTime() {
@@ -44,6 +32,27 @@ public class Measurement implements Comparable<Measurement> {
 
     @Override
     public int compareTo(Measurement measurement) {
-        return Double.compare(this.centimetersDistance, measurement.getCentimetersDistance());
+        return Double.compare(this.distanceCentimeters, measurement.getDistanceCentimeters());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Measurement that = (Measurement) o;
+        return id == that.id &&
+                Double.compare(that.distanceCentimeters, distanceCentimeters) == 0 &&
+                Objects.equals(time, that.time);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, distanceCentimeters, time);
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "" + distanceCentimeters;
     }
 }
