@@ -6,13 +6,11 @@ import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
 import java.util.List;
 
-public interface Measurements {
+public interface MeasurementsManager {
     @NonNull
     List<Measurement> filterByMedian(@NonNull List<Measurement> measurementsToFilter, double maxDeviationFromMedianInCentimeters);
 
-    @NonNull
-    List<Measurement> sortByDistance(@NonNull List<Measurement> measurementsToSort);
+    void sortByDistance(@NonNull List<Measurement> measurementsToSort);
 
-    @NonNull
-    List<Measurement> sortById(@NonNull List<Measurement> measurementsToSort);
+    void sortById(@NonNull List<Measurement> measurementsToSort);
 }

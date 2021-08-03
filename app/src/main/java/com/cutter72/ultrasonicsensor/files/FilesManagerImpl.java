@@ -1,14 +1,17 @@
 package com.cutter72.ultrasonicsensor.files;
 
+import androidx.annotation.NonNull;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
-public class FileManager {
+public class FilesManagerImpl implements FilesManager {
 
-    public File prepareDirectory(String pathToFile) {
+    @Override
+    public File prepareDirectory(@NonNull String pathToFile) {
         File filePath = new File(pathToFile);
         if (!filePath.exists()) {
             filePath.mkdirs();
@@ -16,7 +19,8 @@ public class FileManager {
         return filePath;
     }
 
-    public void writeToFile(File file, String data) {
+    @Override
+    public void writeToFile(@NonNull File file, @NonNull String data) {
         try {
             FileWriter fileWriter = new FileWriter(file);
             PrintWriter printWriter = new PrintWriter(fileWriter);

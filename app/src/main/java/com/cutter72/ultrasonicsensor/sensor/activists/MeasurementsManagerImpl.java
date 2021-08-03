@@ -10,7 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 
 @SuppressWarnings("Convert2Lambda")
-public class MeasurementsImpl implements Measurements {
+public class MeasurementsManagerImpl implements MeasurementsManager {
 
     @NonNull
     @Override
@@ -27,7 +27,8 @@ public class MeasurementsImpl implements Measurements {
     }
 
     private double findMedian(@NonNull List<Measurement> measurementsToFilter) {
-        List<Measurement> sortedMeasurements = this.sortByDistance(new ArrayList<>(measurementsToFilter));
+        List<Measurement> sortedMeasurements = new ArrayList<>(measurementsToFilter);
+        this.sortByDistance(sortedMeasurements);
         double median;
         int measurementsBufferSize = sortedMeasurements.size();
         if (measurementsBufferSize % 2 == 0) {
@@ -40,27 +41,23 @@ public class MeasurementsImpl implements Measurements {
         return median;
     }
 
-    @NonNull
     @Override
-    public List<Measurement> sortByDistance(@NonNull List<Measurement> measurementsToSort) {
+    public void sortByDistance(@NonNull List<Measurement> measurementsToSort) {
         Collections.sort(measurementsToSort, new Comparator<Measurement>() {
             @Override
             public int compare(Measurement o1, Measurement o2) {
                 return Double.compare(o1.getDistanceCentimeters(), o2.getDistanceCentimeters());
             }
         });
-        return measurementsToSort;
     }
 
-    @NonNull
     @Override
-    public List<Measurement> sortById(@NonNull List<Measurement> measurementsToSort) {
+    public void sortById(@NonNull List<Measurement> measurementsToSort) {
         Collections.sort(measurementsToSort, new Comparator<Measurement>() {
             @Override
             public int compare(Measurement o1, Measurement o2) {
                 return Integer.compare(o1.getId(), o2.getId());
             }
         });
-        return measurementsToSort;
     }
 }

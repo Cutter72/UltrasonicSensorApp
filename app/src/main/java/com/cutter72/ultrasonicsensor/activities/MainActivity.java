@@ -20,7 +20,8 @@ import androidx.core.app.ActivityCompat;
 
 import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.R;
-import com.cutter72.ultrasonicsensor.files.FileManager;
+import com.cutter72.ultrasonicsensor.files.FilesManager;
+import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.layout.ConsoleView;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
@@ -258,9 +259,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void createDataFile() {
         //todo think how to save all data
-        FileManager fileManager = new FileManager();
+        FilesManager filesManager = new FilesManagerImpl();
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
-        fileManager.prepareDirectory(directory.getAbsolutePath());
+        filesManager.prepareDirectory(directory.getAbsolutePath());
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
                 impacts,
                 allMeasurements.size(),
@@ -277,7 +278,7 @@ public class MainActivity extends AppCompatActivity {
             sb.append(measurement.getDistanceCentimeters());
             sb.append("\n");
         }
-        fileManager.writeToFile(outputFile, sb.toString());
+        filesManager.writeToFile(outputFile, sb.toString());
         consoleView.println(String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
     }
 

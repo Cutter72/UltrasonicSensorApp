@@ -1,6 +1,6 @@
 package com.cutter72.ultrasonicsensor;
 
-import com.cutter72.ultrasonicsensor.sensor.activists.MeasurementsImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.MeasurementsManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
 import org.junit.Before;
@@ -13,15 +13,15 @@ import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
-public class MeasurementsImplTest {
-    private MeasurementsImpl measurementsFilterImpl;
+public class MeasurementsManagerImplTest {
+    private MeasurementsManagerImpl measurements;
     private final int MEASUREMENTS_QUANTITY = 100;
     private List<Measurement> inputMeasurements;
 
     @Before
     public void setUp() {
         //GIVEN
-        measurementsFilterImpl = new MeasurementsImpl();
+        measurements = new MeasurementsManagerImpl();
         inputMeasurements = new ArrayList<>();
         int badMeasurements = 0;
         Random random = new Random();
@@ -45,9 +45,11 @@ public class MeasurementsImplTest {
 
     @Test
     public void filterByMedian() {
+        //GIVEN
+        List<Measurement> measurementsToFilter = new ArrayList<>(inputMeasurements);
         //WHEN
-        List<Measurement> result = measurementsFilterImpl.filterByMedian(inputMeasurements, 0.4);
+        measurements.filterByMedian(measurementsToFilter, 0.4);
         //THEN
-        assertEquals(MEASUREMENTS_QUANTITY, result.size());
+        assertEquals(MEASUREMENTS_QUANTITY, measurementsToFilter.size());
     }
 }
