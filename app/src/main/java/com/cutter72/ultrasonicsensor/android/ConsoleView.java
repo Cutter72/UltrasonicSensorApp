@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor.layout;
+package com.cutter72.ultrasonicsensor.android;
 
 import android.content.Context;
 import android.view.View;

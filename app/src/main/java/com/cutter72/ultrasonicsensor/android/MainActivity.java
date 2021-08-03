@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor.activities;
+package com.cutter72.ultrasonicsensor.android;
 
 import android.Manifest;
 import android.content.Context;
@@ -22,7 +22,6 @@ import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.R;
 import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
-import com.cutter72.ultrasonicsensor.layout.ConsoleView;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;

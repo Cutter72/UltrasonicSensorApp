@@ -20,7 +20,7 @@
         <!--        <uses-library android:name="com.google.android.things" />-->
 
         <activity
-            android:name="com.cutter72.ultrasonicsensor.activities.MainActivity"
+            android:name=".android.MainActivity"
             android:screenOrientation="userLandscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
