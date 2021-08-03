@@ -4,9 +4,11 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 
+import androidx.annotation.NonNull;
+
 import com.balsikandar.crashreporter.CrashReporter;
-import com.cutter72.ultrasonicsensor.sensor.activists.SensorDataDecoder;
-import com.cutter72.ultrasonicsensor.sensor.activists.SensorDataDecoderImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoder;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
@@ -16,28 +18,25 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Class for connect and read data from Senix ToughSonic sensor via USB UART RS-232 port. Sensor
- * must be set to ASCII streaming mode.
- */
-public class SensorManagerImpl implements SensorManager {
+@SuppressWarnings("FieldCanBeLocal")
+public class SensorConnectionImpl implements SensorConnection {
     // RS-232 connection params
-    private final int BAUD_RATE = 9600;
-    private final int DATA_BITS = 8;
-    private final int BUFFER_TIME_OUT = 100;
-    private final int BUFFER_SIZE = 99;
+    private final int DEFAULT_BAUD_RATE = 9600;
+    private final int DEFAULT_DATA_BITS = 8;
+    private final int DEFAULT_BUFFER_TIME_OUT = 100;
+    private final int DEFAULT_BUFFER_SIZE = 99;
     // usb device params
-    private final String MANUFACTURER_NAME = "FTDI";
-    private final String PRODUCT_NAME = "FT232R USB UART";
+    private final String DEFAULT_MANUFACTURER_NAME = "FTDI";
+    private final String DEFAULT_PRODUCT_NAME = "FT232R USB UART";
 
     // connection objects
-    private UsbManager usbManager;
+    private final UsbManager usbManager;
     private UsbSerialDriver sensorUsbDeviceDriver;
     private UsbDevice sensorUsbDevice;
     private UsbDeviceConnection sensorUsbDeviceConnection;
     private UsbSerialPort sensorUsbSerialPort;
 
-    public SensorManagerImpl(UsbManager usbManager) {
+    public SensorConnectionImpl(UsbManager usbManager) {
         this.usbManager = usbManager;
     }
 
@@ -46,9 +45,9 @@ public class SensorManagerImpl implements SensorManager {
     }
 
     @Override
-    public boolean openConnectionToSensor() {
+    public boolean open() {
         System.out.println("openConnectionToSensor");
-        if (isSensorConnectionOpen()) {
+        if (isOpen()) {
             System.out.println("connectionToSensorAlreadyOpen");
             return true;
         } else {
@@ -70,7 +69,7 @@ public class SensorManagerImpl implements SensorManager {
     }
 
     @Override
-    public boolean isSensorConnectionOpen() {
+    public boolean isOpen() {
         System.out.println("isSensorConnectionOpen");
         if (sensorUsbSerialPort != null) {
             return sensorUsbSerialPort.isOpen();
@@ -88,8 +87,8 @@ public class SensorManagerImpl implements SensorManager {
                 System.out.println("availableDriver device: " + availableDriver.getDevice());
                 System.out.println("availableDriver ports: " + availableDriver.getPorts());
                 System.out.println("------");
-                if (MANUFACTURER_NAME.equals(usbDevice.getManufacturerName())
-                        && PRODUCT_NAME.equals(usbDevice.getProductName())) {
+                if (DEFAULT_MANUFACTURER_NAME.equals(usbDevice.getManufacturerName())
+                        && DEFAULT_PRODUCT_NAME.equals(usbDevice.getProductName())) {
                     System.out.println("SensorUsbDeviceFound");
                     sensorUsbDeviceDriver = availableDriver;
                     sensorUsbDevice = usbDevice;
@@ -129,7 +128,7 @@ public class SensorManagerImpl implements SensorManager {
             if (sensorUsbDeviceConnection != null) {
                 try {
                     sensorUsbSerialPort.open(sensorUsbDeviceConnection);
-                    sensorUsbSerialPort.setParameters(BAUD_RATE, DATA_BITS, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+                    sensorUsbSerialPort.setParameters(DEFAULT_BAUD_RATE, DEFAULT_DATA_BITS, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
                     System.out.println("USB DEVICE PORT OPEN");
                     return true;
                 } catch (IOException e) {
@@ -147,16 +146,17 @@ public class SensorManagerImpl implements SensorManager {
         }
     }
 
+    @NonNull
     @Override
     public List<Measurement> readMeasurementsFromSensor() {
         System.out.println("readMeasurementsFromSensor");
         List<Measurement> measurements = new ArrayList<>();
-        byte[] rawDataFromSensor = readRawDataFromSensor();
-        if (isSensorConnectionOpen()) {
-            SensorDataDecoder sensorDataDecoder = new SensorDataDecoderImpl();
-            measurements = sensorDataDecoder.decodeDataFromSensor(rawDataFromSensor);
+        byte[] rawDataFromSensor = readRawData();
+        if (isOpen()) {
+            DataDecoder dataDecoder = new DataDecoderImpl();
+            measurements = dataDecoder.decodeDataFromSensor(rawDataFromSensor);
         } else {
-            if (reconnectToSensor()) {
+            if (reopen()) {
                 readMeasurementsFromSensor();
             } else {
                 System.out.println("cannotReconnectToSensor");
@@ -165,21 +165,27 @@ public class SensorManagerImpl implements SensorManager {
         return measurements;
     }
 
-    private byte[] readRawDataFromSensor() {
-        System.out.println("readSensorData");
-        byte[] rawDataFromSensor = new byte[BUFFER_SIZE];
+    @NonNull
+    @Override
+    public byte[] readRawData() {
+        return readRawData(new byte[DEFAULT_BUFFER_SIZE]);
+    }
+
+    @NonNull
+    @Override
+    public byte[] readRawData(@NonNull byte[] buffer) {
+        System.out.println("readRawData");
         try {
-            sensorUsbSerialPort.read(rawDataFromSensor, BUFFER_TIME_OUT);
+            sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT);
         } catch (IOException | NullPointerException e) {
             e.printStackTrace();
             CrashReporter.logException(e);
-            return null;
         }
-        return rawDataFromSensor;
+        return buffer;
     }
 
-    private boolean reconnectToSensor() {
-        if (openConnectionToSensor()) {
+    private boolean reopen() {
+        if (open()) {
             System.out.println("reconnectionToSensorSuccess");
             return true;
         } else {
@@ -188,13 +194,15 @@ public class SensorManagerImpl implements SensorManager {
         }
     }
 
-    public void closeConnectionToSensor() {
-        closeSensorPort();
-        closeSensorUsbDeviceConnection();
+    @Override
+    public void close() {
+        clearHardwareInputOutputBuffers();
+        closeSerialPort();
+        closeUsbDeviceConnection();
         System.out.println("CONNECTION CLOSED");
     }
 
-    private void closeSensorPort() {
+    private void closeSerialPort() {
         if (sensorUsbSerialPort != null) {
             try {
                 sensorUsbSerialPort.close();
@@ -205,9 +213,23 @@ public class SensorManagerImpl implements SensorManager {
         }
     }
 
-    private void closeSensorUsbDeviceConnection() {
+    private void closeUsbDeviceConnection() {
         if (sensorUsbDeviceConnection != null) {
             sensorUsbDeviceConnection.close();
         }
+    }
+
+    @Override
+    public boolean clearHardwareInputOutputBuffers() {
+        if (sensorUsbSerialPort != null) {
+            try {
+                sensorUsbSerialPort.purgeHwBuffers(true, true);
+                return true;
+            } catch (IOException | NullPointerException e) {
+                e.printStackTrace();
+                CrashReporter.logException(e);
+            }
+        }
+        return false;
     }
 }

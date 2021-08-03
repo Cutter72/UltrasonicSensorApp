@@ -4,6 +4,6 @@ import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
 import java.util.List;
 
-public interface SensorDataDecoder {
+public interface DataDecoder {
     List<Measurement> decodeDataFromSensor(byte[] rawDataFromSensor);
 }

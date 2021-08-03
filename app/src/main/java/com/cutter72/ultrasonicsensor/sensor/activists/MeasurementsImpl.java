@@ -1,5 +1,7 @@
 package com.cutter72.ultrasonicsensor.sensor.activists;
 
+import androidx.annotation.NonNull;
+
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
 import java.util.ArrayList;
@@ -10,8 +12,9 @@ import java.util.List;
 @SuppressWarnings("Convert2Lambda")
 public class MeasurementsImpl implements Measurements {
 
+    @NonNull
     @Override
-    public List<Measurement> filterByMedian(List<Measurement> measurementsToFilter, double maxDeviationFromMedianInCentimeters) {
+    public List<Measurement> filterByMedian(@NonNull List<Measurement> measurementsToFilter, double maxDeviationFromMedianInCentimeters) {
         List<Measurement> filteredResult = new ArrayList<>(measurementsToFilter);
         double median;
         median = findMedian(measurementsToFilter);
@@ -23,7 +26,7 @@ public class MeasurementsImpl implements Measurements {
         return filteredResult;
     }
 
-    private double findMedian(List<Measurement> measurementsToFilter) {
+    private double findMedian(@NonNull List<Measurement> measurementsToFilter) {
         List<Measurement> sortedMeasurements = this.sortByDistance(new ArrayList<>(measurementsToFilter));
         double median;
         int measurementsBufferSize = sortedMeasurements.size();
@@ -37,8 +40,9 @@ public class MeasurementsImpl implements Measurements {
         return median;
     }
 
+    @NonNull
     @Override
-    public List<Measurement> sortByDistance(List<Measurement> measurementsToSort) {
+    public List<Measurement> sortByDistance(@NonNull List<Measurement> measurementsToSort) {
         Collections.sort(measurementsToSort, new Comparator<Measurement>() {
             @Override
             public int compare(Measurement o1, Measurement o2) {
@@ -48,8 +52,9 @@ public class MeasurementsImpl implements Measurements {
         return measurementsToSort;
     }
 
+    @NonNull
     @Override
-    public List<Measurement> sortById(List<Measurement> measurementsToSort) {
+    public List<Measurement> sortById(@NonNull List<Measurement> measurementsToSort) {
         Collections.sort(measurementsToSort, new Comparator<Measurement>() {
             @Override
             public int compare(Measurement o1, Measurement o2) {

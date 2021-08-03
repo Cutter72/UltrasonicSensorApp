@@ -1,24 +1,24 @@
 package com.cutter72.ultrasonicsensor.sensor.solids;
 
-import com.cutter72.ultrasonicsensor.sensor.activists.SensorDataDecoder;
-import com.cutter72.ultrasonicsensor.sensor.activists.SensorDataDecoderImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoder;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SensorDataStorage {
+public class DataStorage {
     private final List<byte[]> rawData;
     private final List<Measurement> rawMeasurements;
 
-    public SensorDataStorage() {
+    public DataStorage() {
         this.rawData = new ArrayList<>();
         this.rawMeasurements = new ArrayList<>();
     }
 
     public void addRawData(byte[] rawData) {
         this.rawData.add(rawData);
-        SensorDataDecoder sensorDataDecoder = new SensorDataDecoderImpl();
-        this.rawMeasurements.addAll(sensorDataDecoder.decodeDataFromSensor(rawData));
+        DataDecoder dataDecoder = new DataDecoderImpl();
+        this.rawMeasurements.addAll(dataDecoder.decodeDataFromSensor(rawData));
     }
 
     public byte[] getRawData() {
