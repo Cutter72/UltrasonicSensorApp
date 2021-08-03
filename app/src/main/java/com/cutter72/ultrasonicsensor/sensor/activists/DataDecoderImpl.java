@@ -1,5 +1,7 @@
 package com.cutter72.ultrasonicsensor.sensor.activists;
 
+import androidx.annotation.NonNull;
+
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
 import java.util.ArrayList;
@@ -8,39 +10,37 @@ import java.util.List;
 /**
  * Class for decode Sensor raw data to real measurements in centimeters unit.
  */
+@SuppressWarnings("FieldCanBeLocal")
 public class DataDecoderImpl implements DataDecoder {
     private final double CENTIMETERS_UNIT_FACTOR = 0.00859536; // 1 sensor unit = 0.00859536 cm from ToughSonic Sensor 12 datasheet
     private final int NUL = 0; // no data
     private final int CR = 13; // Carriage Return, end of data sequence
-    private int MANTISSA_BASE_POWER_0 = 1;
-    private int MANTISSA_BASE_POWER_1 = 10;
-    private int MANTISSA_BASE_POWER_2 = 100;
-    private int MANTISSA_BASE_POWER_3 = 1000;
-    private int MANTISSA_BASE_POWER_4 = 10000;
+    private final int MANTISSA_BASE_POWER_0 = 1;
+    private final int MANTISSA_BASE_POWER_1 = 10;
+    private final int MANTISSA_BASE_POWER_2 = 100;
+    private final int MANTISSA_BASE_POWER_3 = 1000;
+    private final int MANTISSA_BASE_POWER_4 = 10000;
 
+    @NonNull
     @Override
-    public List<Measurement> decodeDataFromSensor(byte[] rawDataFromSensor) {
+    public List<Measurement> decodeDataFromSensor(@NonNull byte[] rawDataFromSensor) {
         List<Measurement> measurements = new ArrayList<>();
-        if (rawDataFromSensor != null) {
-            List<Integer> rawSensorUnitsBuffer = new ArrayList<>();
-            for (byte b : rawDataFromSensor) {
-                if (b != NUL) {
-                    if (b == CR) {
-                        if (rawSensorUnitsBuffer.size() == 5) {
-                            Measurement measurement = decodeMeasurement(rawSensorUnitsBuffer);
-                            measurements.add(measurement);
-                        }
-                        rawSensorUnitsBuffer.clear();
-                    } else {
-                        int digit = decodeDigit(b);
-                        rawSensorUnitsBuffer.add(digit);
+        List<Integer> rawSensorUnitsBuffer = new ArrayList<>();
+        for (byte b : rawDataFromSensor) {
+            if (b != NUL) {
+                if (b == CR) {
+                    if (rawSensorUnitsBuffer.size() == 5) {
+                        Measurement measurement = decodeMeasurement(rawSensorUnitsBuffer);
+                        measurements.add(measurement);
                     }
+                    rawSensorUnitsBuffer.clear();
                 } else {
-                    break;
+                    int digit = decodeDigit(b);
+                    rawSensorUnitsBuffer.add(digit);
                 }
+            } else {
+                break;
             }
-        } else {
-            System.out.println("rawDataFromSensor == null");
         }
         return measurements;
     }
