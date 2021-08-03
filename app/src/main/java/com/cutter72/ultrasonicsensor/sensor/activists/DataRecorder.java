@@ -2,12 +2,18 @@ package com.cutter72.ultrasonicsensor.sensor.activists;
 
 import androidx.annotation.NonNull;
 
-import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
+import com.cutter72.ultrasonicsensor.sensor.solids.DataStorage;
 
 public interface DataRecorder {
-    void startRecording(@NonNull UsbSerialPort portToListen);
+    void startRecording(@NonNull SensorConnection sensorConnection);
+
+    void stopRecording();
 
     boolean isRecording();
 
-    void stopRecording();
+    boolean isDataRecorded();
+
+    @NonNull
+    DataStorage getRecordedData();
 }
