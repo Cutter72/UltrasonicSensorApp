@@ -22,8 +22,8 @@ import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.R;
 import com.cutter72.ultrasonicsensor.files.FileManager;
 import com.cutter72.ultrasonicsensor.layout.ConsoleView;
-import com.cutter72.ultrasonicsensor.sensor.Measurement;
 import com.cutter72.ultrasonicsensor.sensor.SensorManagerImpl;
+import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     //RS232 connection
     private SensorManagerImpl sensorManagerImpl;
     //todo create SensorDataRecorder
+    //todo add logger
     public static boolean isOpened = false;
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;

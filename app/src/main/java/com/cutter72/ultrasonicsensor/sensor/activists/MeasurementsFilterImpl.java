@@ -1,15 +1,28 @@
-package com.cutter72.ultrasonicsensor.sensor;
+package com.cutter72.ultrasonicsensor.sensor.activists;
+
+import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class MeasurementsFilter {
+public class MeasurementsFilterImpl implements MeasurementsFilter {
 
+    @Override
     public List<Measurement> filterByMedian(List<Measurement> measurementsToFilter, double maxDeviationFromMedianInCentimeters) {
         List<Measurement> filteredResult = new ArrayList<>(measurementsToFilter);
         double median;
-        int filteredOutMeasurements = 0;
+        median = findMedian(filteredResult);
+        for (Measurement measurement : measurementsToFilter) {
+            if (Math.abs(measurement.getCentimetersDistance() - median) > maxDeviationFromMedianInCentimeters) {
+                filteredResult.remove(measurement);
+            }
+        }
+        return filteredResult;
+    }
+
+    private double findMedian(List<Measurement> filteredResult) {
+        double median;
         int measurementsBufferSize = filteredResult.size();
         Collections.sort(filteredResult);
         if (measurementsBufferSize % 2 == 0) {
@@ -19,16 +32,6 @@ public class MeasurementsFilter {
             int index = (measurementsBufferSize + 1) / 2 - 1;
             median = filteredResult.get(index).getCentimetersDistance();
         }
-        System.out.println("Median: " + median);
-        System.out.println("Max deviation: " + maxDeviationFromMedianInCentimeters);
-        for (Measurement measurement : measurementsToFilter) {
-            if (Math.abs(measurement.getCentimetersDistance() - median) > maxDeviationFromMedianInCentimeters) {
-                filteredOutMeasurements++;
-                filteredResult.remove(measurement);
-//                System.out.println("Measurement removed: " + measurement);
-            }
-        }
-        System.out.println("Filtered out measurements: " + filteredOutMeasurements);
-        return filteredResult;
+        return median;
     }
 }

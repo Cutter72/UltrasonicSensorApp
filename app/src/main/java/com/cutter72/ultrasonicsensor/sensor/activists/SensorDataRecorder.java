@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor.sensor;
+package com.cutter72.ultrasonicsensor.sensor.activists;
 
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 

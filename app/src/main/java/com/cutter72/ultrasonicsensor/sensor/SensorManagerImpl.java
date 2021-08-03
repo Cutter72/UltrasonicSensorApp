@@ -5,6 +5,9 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 
 import com.balsikandar.crashreporter.CrashReporter;
+import com.cutter72.ultrasonicsensor.sensor.activists.SensorDataDecoder;
+import com.cutter72.ultrasonicsensor.sensor.activists.SensorDataDecoderImpl;
+import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;

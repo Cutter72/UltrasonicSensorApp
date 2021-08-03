@@ -1,5 +1,7 @@
 package com.cutter72.ultrasonicsensor.sensor;
 
+import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
+
 import java.util.List;
 
 public interface SensorManager {
