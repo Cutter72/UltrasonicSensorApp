@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor.activities;
 
 import android.Manifest;
 import android.content.Context;
@@ -19,6 +19,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import com.balsikandar.crashreporter.CrashReporter;
+import com.cutter72.ultrasonicsensor.R;
+import com.cutter72.ultrasonicsensor.files.FileManager;
+import com.cutter72.ultrasonicsensor.layout.ConsoleView;
+import com.cutter72.ultrasonicsensor.sensor.Measurement;
+import com.cutter72.ultrasonicsensor.sensor.SensorManagerImpl;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -38,7 +43,8 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isRecording = false;
 
     //RS232 connection
-    private SensorManager sensorManager;
+    private SensorManagerImpl sensorManagerImpl;
+    //todo create SensorDataRecorder
     public static boolean isOpened = false;
     private List<UsbSerialDriver> availableDrivers;
     private UsbManager manager;
@@ -92,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeFields() {
-        sensorManager = new SensorManager((UsbManager) getSystemService(USB_SERVICE));
+        sensorManagerImpl = new SensorManagerImpl((UsbManager) getSystemService(USB_SERVICE));
         isRawDataLogEnabled = false;
         rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
         previousImpactTimestamp = 0;

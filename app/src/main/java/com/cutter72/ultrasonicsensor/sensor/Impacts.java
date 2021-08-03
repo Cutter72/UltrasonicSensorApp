@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor.sensor;
 
 public class Impacts {
     private double ceiling;

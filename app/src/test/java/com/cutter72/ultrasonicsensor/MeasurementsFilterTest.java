@@ -1,5 +1,8 @@
 package com.cutter72.ultrasonicsensor;
 
+import com.cutter72.ultrasonicsensor.sensor.Measurement;
+import com.cutter72.ultrasonicsensor.sensor.MeasurementsFilter;
+
 import org.junit.Before;
 import org.junit.Test;
 

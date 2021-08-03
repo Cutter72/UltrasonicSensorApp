@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor.sensor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * Class for decode Sensor raw data to real measurements in centimeters unit.
  */
-public class SensorDataDecoder {
+public class SensorDataDecoderImpl implements SensorDataDecoder {
     private final double CENTIMETERS_UNIT_FACTOR = 0.00859536; // 1 sensor unit = 0.00859536 cm from ToughSonic Sensor 12 datasheet
     private final int NUL = 0; // no data
     private final int CR = 13; // Carriage Return, end of data sequence
@@ -16,6 +16,7 @@ public class SensorDataDecoder {
     private int MANTISSA_BASE_POWER_3 = 1000;
     private int MANTISSA_BASE_POWER_4 = 10000;
 
+    @Override
     public List<Measurement> decodeDataFromSensor(byte[] rawDataFromSensor) {
         List<Measurement> measurements = new ArrayList<>();
         if (rawDataFromSensor != null) {

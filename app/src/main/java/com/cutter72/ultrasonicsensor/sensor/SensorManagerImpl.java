@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor.sensor;
 
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
@@ -17,7 +17,7 @@ import java.util.List;
  * Class for connect and read data from Senix ToughSonic sensor via USB UART RS-232 port. Sensor
  * must be set to ASCII streaming mode.
  */
-public class SensorManager {
+public class SensorManagerImpl implements SensorManager {
     // RS-232 connection params
     private final int BAUD_RATE = 9600;
     private final int DATA_BITS = 8;
@@ -34,7 +34,7 @@ public class SensorManager {
     private UsbDeviceConnection sensorUsbDeviceConnection;
     private UsbSerialPort sensorUsbSerialPort;
 
-    public SensorManager(UsbManager usbManager) {
+    public SensorManagerImpl(UsbManager usbManager) {
         this.usbManager = usbManager;
     }
 
@@ -42,6 +42,7 @@ public class SensorManager {
         return sensorUsbSerialPort;
     }
 
+    @Override
     public boolean openConnectionToSensor() {
         System.out.println("openConnectionToSensor");
         if (isSensorConnectionOpen()) {
@@ -65,6 +66,7 @@ public class SensorManager {
         return false;
     }
 
+    @Override
     public boolean isSensorConnectionOpen() {
         System.out.println("isSensorConnectionOpen");
         if (sensorUsbSerialPort != null) {
@@ -142,12 +144,13 @@ public class SensorManager {
         }
     }
 
+    @Override
     public List<Measurement> readMeasurementsFromSensor() {
         System.out.println("readMeasurementsFromSensor");
         List<Measurement> measurements = new ArrayList<>();
         byte[] rawDataFromSensor = readRawDataFromSensor();
         if (isSensorConnectionOpen()) {
-            SensorDataDecoder sensorDataDecoder = new SensorDataDecoder();
+            SensorDataDecoder sensorDataDecoder = new SensorDataDecoderImpl();
             measurements = sensorDataDecoder.decodeDataFromSensor(rawDataFromSensor);
         } else {
             if (reconnectToSensor()) {

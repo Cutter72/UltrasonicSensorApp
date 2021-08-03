@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor.sensor;
 
 import java.util.ArrayList;
 import java.util.Collections;

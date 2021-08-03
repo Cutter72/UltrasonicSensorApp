@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor;
+package com.cutter72.ultrasonicsensor.files;
 
 import java.io.File;
 import java.io.FileWriter;
