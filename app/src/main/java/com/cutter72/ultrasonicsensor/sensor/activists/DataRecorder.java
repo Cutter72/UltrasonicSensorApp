@@ -5,9 +5,9 @@ import androidx.annotation.NonNull;
 import com.cutter72.ultrasonicsensor.sensor.solids.DataStorage;
 
 public interface DataRecorder {
-    boolean startRecording();
+    void startRecording();
 
-    boolean stopRecording();
+    void stopRecording();
 
     boolean isRecording();
 

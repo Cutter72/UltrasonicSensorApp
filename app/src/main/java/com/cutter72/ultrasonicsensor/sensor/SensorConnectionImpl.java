@@ -21,10 +21,10 @@ import java.util.List;
 @SuppressWarnings("FieldCanBeLocal")
 public class SensorConnectionImpl implements SensorConnection {
     // RS-232 connection params
+    public final static int DEFAULT_BUFFER_TIME_OUT_MILLIS = 100;
+    private final int DEFAULT_BUFFER_SIZE = 99;
     private final int DEFAULT_BAUD_RATE = 9600;
     private final int DEFAULT_DATA_BITS = 8;
-    private final int DEFAULT_BUFFER_TIME_OUT = 100;
-    private final int DEFAULT_BUFFER_SIZE = 99;
     // usb device params
     private final String DEFAULT_MANUFACTURER_NAME = "FTDI";
     private final String DEFAULT_PRODUCT_NAME = "FT232R USB UART";
@@ -176,7 +176,7 @@ public class SensorConnectionImpl implements SensorConnection {
     public byte[] readRawData(@NonNull byte[] buffer) {
         System.out.println("readRawData");
         try {
-            sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT);
+            sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
         } catch (IOException | NullPointerException e) {
             e.printStackTrace();
             CrashReporter.logException(e);
