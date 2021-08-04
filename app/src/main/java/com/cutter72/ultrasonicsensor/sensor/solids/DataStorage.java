@@ -5,7 +5,7 @@ import androidx.annotation.NonNull;
 import java.util.List;
 
 public interface DataStorage {
-    void addRawData(@NonNull byte[] rawData);
+    List<Measurement> addRawData(@NonNull byte[] rawData);
 
     @NonNull
     byte[] getRawData();

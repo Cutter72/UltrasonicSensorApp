@@ -6,7 +6,9 @@ import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.DataStorage;
+import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -15,12 +17,16 @@ public class DataRecorderImpl implements DataRecorder {
     private final DataStorage dataStorage;
     private final SensorConnection sensorConnection;
     private final ExecutorService executorService;
+    private final DataCallback<List<Measurement>> measurementsDataCallback;
     private boolean isRecording;
 
     public DataRecorderImpl(@NonNull SensorConnection sensorConnection,
-                            @NonNull DataStorage dataStorage) {
+                            @NonNull DataStorage dataStorage,
+                            @NonNull DataCallback<List<Measurement>> measurementsDataCallback
+    ) {
         this.dataStorage = dataStorage;
         this.sensorConnection = sensorConnection;
+        this.measurementsDataCallback = measurementsDataCallback;
         this.executorService = Executors.newSingleThreadExecutor();
     }
 
@@ -30,7 +36,13 @@ public class DataRecorderImpl implements DataRecorder {
         executorService.submit(() -> {
             while (isRecording) {
                 if (waitForData()) {
-                    dataStorage.addRawData(sensorConnection.readRawData());
+                    try {
+                        measurementsDataCallback.accept(dataStorage.addRawData(sensorConnection.readRawData()));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        CrashReporter.logException(e);
+                        stopRecording();
+                    }
                 } else {
                     stopRecording();
                 }

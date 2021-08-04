@@ -18,10 +18,12 @@ public class DataStorageImpl implements DataStorage {
     }
 
     @Override
-    public void addRawData(@NonNull byte[] rawData) {
+    public List<Measurement> addRawData(@NonNull byte[] rawData) {
         this.rawData.add(rawData);
         DataDecoder dataDecoder = new DataDecoderImpl();
-        this.rawMeasurements.addAll(dataDecoder.decodeDataFromSensor(rawData));
+        List<Measurement> rawMeasurementsChunk = dataDecoder.decodeDataFromSensor(rawData);
+        this.rawMeasurements.addAll(rawMeasurementsChunk);
+        return rawMeasurementsChunk;
     }
 
     @NonNull
