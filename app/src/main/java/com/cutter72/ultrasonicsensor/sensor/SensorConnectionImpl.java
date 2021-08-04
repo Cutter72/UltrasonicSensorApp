@@ -7,16 +7,11 @@ import android.hardware.usb.UsbManager;
 import androidx.annotation.NonNull;
 
 import com.balsikandar.crashreporter.CrashReporter;
-import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoder;
-import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
-import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class SensorConnectionImpl implements SensorConnection {
@@ -54,6 +49,7 @@ public class SensorConnectionImpl implements SensorConnection {
             if (findSensor()) {
                 if (openSensorConnection()) {
                     if (openSensorPort()) {
+                        System.out.println("connectionOpen");
                         return true;
                     } else {
                         System.out.println("cannotOpenPort");
@@ -65,6 +61,7 @@ public class SensorConnectionImpl implements SensorConnection {
                 System.out.println("sensorNotConnected");
             }
         }
+        System.out.println("cannotOpenConnection");
         return false;
     }
 
@@ -148,25 +145,6 @@ public class SensorConnectionImpl implements SensorConnection {
 
     @NonNull
     @Override
-    public List<Measurement> readMeasurementsFromSensor() {
-        System.out.println("readMeasurementsFromSensor");
-        List<Measurement> measurements = new ArrayList<>();
-        byte[] rawDataFromSensor = readRawData();
-        if (isOpen()) {
-            DataDecoder dataDecoder = new DataDecoderImpl();
-            measurements = dataDecoder.decodeDataFromSensor(rawDataFromSensor);
-        } else {
-            if (reopen()) {
-                readMeasurementsFromSensor();
-            } else {
-                System.out.println("cannotReconnectToSensor");
-            }
-        }
-        return measurements;
-    }
-
-    @NonNull
-    @Override
     public byte[] readRawData() {
         return readRawData(new byte[DEFAULT_BUFFER_SIZE]);
     }
@@ -175,23 +153,21 @@ public class SensorConnectionImpl implements SensorConnection {
     @Override
     public byte[] readRawData(@NonNull byte[] buffer) {
         System.out.println("readRawData");
-        try {
-            sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
-        } catch (IOException | NullPointerException e) {
-            e.printStackTrace();
-            CrashReporter.logException(e);
+        if (isOpen()) {
+            try {
+                sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
+            } catch (IOException | NullPointerException e) {
+                e.printStackTrace();
+                CrashReporter.logException(e);
+            }
+        } else {
+            if (open()) {
+                readRawData(buffer);
+            } else {
+                System.out.println("noConnectionOpenCannotReadData");
+            }
         }
         return buffer;
-    }
-
-    private boolean reopen() {
-        if (open()) {
-            System.out.println("reconnectionToSensorSuccess");
-            return true;
-        } else {
-            System.out.println("reconnectionToSensorFailed");
-            return false;
-        }
     }
 
     @Override

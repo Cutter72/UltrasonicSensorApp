@@ -8,6 +8,7 @@ import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.DataStorage;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,7 +34,9 @@ public class DataRecorderImpl implements DataRecorder {
     @Override
     public void startRecording() {
         isRecording = true;
+        sensorConnection.open();
         executorService.submit(() -> {
+            sensorConnection.clearHardwareInputOutputBuffers();
             while (isRecording) {
                 if (waitForData()) {
                     try {
@@ -66,6 +69,12 @@ public class DataRecorderImpl implements DataRecorder {
         isRecording = false;
         if (!executorService.isShutdown()) {
             executorService.shutdownNow();
+        }
+        try {
+            sensorConnection.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            CrashReporter.logException(e);
         }
     }
 
