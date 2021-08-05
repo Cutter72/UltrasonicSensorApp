@@ -1,6 +1,7 @@
 package com.cutter72.ultrasonicsensor.sensor.activists;
 
-import androidx.core.util.Consumer;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 
-public interface DataCallback<T> extends Consumer<T> {
+public interface DataCallback {
+    void onDataReceive(SensorDataCarrier data);
 }

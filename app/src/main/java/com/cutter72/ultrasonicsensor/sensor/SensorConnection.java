@@ -2,6 +2,8 @@ package com.cutter72.ultrasonicsensor.sensor;
 
 import androidx.annotation.NonNull;
 
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
+
 /**
  * Interface for connect and read data from Senix ToughSonic sensor via USB UART RS-232 port.
  *
@@ -15,12 +17,12 @@ public interface SensorConnection {
     boolean isOpen();
 
     @NonNull
-    byte[] readRawData();
+    SensorDataCarrier readData();
 
     @NonNull
-    byte[] readRawData(@NonNull byte[] buffer);
-
-    boolean clearHardwareInputOutputBuffers();
+    SensorDataCarrier readData(@NonNull byte[] buffer);
 
     void close();
+
+    boolean clearHardwareInputOutputBuffers();
 }

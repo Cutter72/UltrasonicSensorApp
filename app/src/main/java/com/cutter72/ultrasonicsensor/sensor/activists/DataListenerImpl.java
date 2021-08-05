@@ -13,10 +13,10 @@ import java.util.concurrent.TimeUnit;
 public class DataListenerImpl implements DataListener {
     private final SensorConnection sensorConnection;
     private final ExecutorService executorService;
-    private final DataCallback<byte[]> dataCallback;
+    private final DataCallback dataCallback;
     private boolean isListening;
 
-    public DataListenerImpl(@NonNull SensorConnection sensorConnection, @NonNull DataCallback<byte[]> dataCallback) {
+    public DataListenerImpl(@NonNull SensorConnection sensorConnection, @NonNull DataCallback dataCallback) {
         this.sensorConnection = sensorConnection;
         this.dataCallback = dataCallback;
         this.executorService = Executors.newSingleThreadExecutor();
@@ -31,7 +31,7 @@ public class DataListenerImpl implements DataListener {
                 while (isListening) {
                     if (waitForData()) {
                         try {
-                            dataCallback.accept(sensorConnection.readRawData());
+                            dataCallback.onDataReceive(sensorConnection.readData());
                         } catch (Exception e) {
                             e.printStackTrace();
                             CrashReporter.logException(e);

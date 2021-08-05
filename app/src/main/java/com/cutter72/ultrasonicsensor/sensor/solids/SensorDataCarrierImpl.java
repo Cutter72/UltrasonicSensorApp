@@ -2,28 +2,32 @@ package com.cutter72.ultrasonicsensor.sensor.solids;
 
 import androidx.annotation.NonNull;
 
-import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoder;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DataStorageImpl implements DataStorage {
+public class SensorDataCarrierImpl implements SensorDataCarrier {
     private final List<byte[]> rawData;
     private final List<Measurement> rawMeasurements;
 
-    public DataStorageImpl() {
+    public SensorDataCarrierImpl() {
         this.rawData = new ArrayList<>();
         this.rawMeasurements = new ArrayList<>();
     }
 
     @Override
-    public List<Measurement> addRawData(@NonNull byte[] rawData) {
+    public SensorDataCarrier addRawData(@NonNull byte[] rawData) {
         this.rawData.add(rawData);
-        DataDecoder dataDecoder = new DataDecoderImpl();
-        List<Measurement> rawMeasurementsChunk = dataDecoder.decodeDataFromSensor(rawData);
-        this.rawMeasurements.addAll(rawMeasurementsChunk);
-        return rawMeasurementsChunk;
+        this.rawMeasurements.addAll(new DataDecoderImpl().decodeDataFromSensor(rawData));
+        return this;
+    }
+
+    @Override
+    public SensorDataCarrier addData(SensorDataCarrier sensorDataCarrier) {
+        this.rawData.add(sensorDataCarrier.getRawData());
+        this.rawMeasurements.addAll(sensorDataCarrier.getRawMeasurements());
+        return this;
     }
 
     @NonNull
@@ -64,5 +68,10 @@ public class DataStorageImpl implements DataStorage {
         } else {
             return this.rawMeasurements;
         }
+    }
+
+    @Override
+    public int size() {
+        return this.rawMeasurements.size();
     }
 }

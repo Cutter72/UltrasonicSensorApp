@@ -4,8 +4,10 @@ import androidx.annotation.NonNull;
 
 import java.util.List;
 
-public interface DataStorage {
-    List<Measurement> addRawData(@NonNull byte[] rawData);
+public interface SensorDataCarrier {
+    SensorDataCarrier addRawData(@NonNull byte[] rawData);
+
+    SensorDataCarrier addData(SensorDataCarrier sensorDataCarrier);
 
     @NonNull
     byte[] getRawData();
@@ -15,4 +17,6 @@ public interface DataStorage {
 
     @NonNull
     List<Measurement> getLastMeasurements(int howMany);
+
+    int size();
 }

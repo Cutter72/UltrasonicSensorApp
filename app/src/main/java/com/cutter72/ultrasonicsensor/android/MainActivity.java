@@ -23,12 +23,11 @@ import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataCallback;
-import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
-import com.cutter72.ultrasonicsensor.sensor.solids.DataStorage;
-import com.cutter72.ultrasonicsensor.sensor.solids.DataStorageImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 
@@ -38,6 +37,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
+import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNAL_COUNTER_RESET_VALUE;
 
 @SuppressWarnings({"Convert2Lambda"})
 public class MainActivity extends AppCompatActivity {
@@ -49,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     //RS232 connection
     private SensorConnection sensorConnection;
-    private DataStorage dataStorage;
+    private SensorDataCarrier sensorDataCarrier;
     private DataListener dataListener;
     //todo create SensorDataRecorder
     //todo add logger
@@ -108,27 +109,17 @@ public class MainActivity extends AppCompatActivity {
     private void initializeFields() {
         initializeLogger();
         sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
-        dataStorage = new DataStorageImpl();
-        dataListener = new DataListenerImpl(sensorConnection, new DataCallback<byte[]>() {
+        sensorDataCarrier = new SensorDataCarrierImpl();
+        dataListener = new DataListenerImpl(sensorConnection, new DataCallback() {
             @Override
-            public void accept(byte[] bytes) {
-                List<Measurement> measurementsChunk;
+            public void onDataReceive(SensorDataCarrier data) {
                 if (isRecording) {
-                    measurementsChunk = dataStorage.addRawData(bytes);
-                } else {
-                    measurementsChunk = new DataDecoderImpl().decodeDataFromSensor(bytes);
+                    sensorDataCarrier.addData(data);
                 }
-                if (measurementsChunk.size() > 0) {
-                    runOnUiThread(() ->
-                            log.i(TAG, Arrays.toString(measurementsChunk.toArray()))
-                    );
+                if (data.size() > 0) {
+                    runOnUiThread(() -> printMeasurements(data));
                 } else {
-                    if (SensorConnectionImpl.noSignalCounter % 10 == 0) {
-                        log.w(TAG, "NO SIGNAL");
-                        SensorConnectionImpl.noSignalCounter = 1;
-                    } else {
-                        SensorConnectionImpl.noSignalCounter++;
-                    }
+                    printNoSignalInfo();
                 }
             }
         });
@@ -139,6 +130,19 @@ public class MainActivity extends AppCompatActivity {
         avgMeasurements = AVG_MEASUREMENTS_DEFAULT;
         minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT; //50ms => 20 impacts / second
         impacts = IMPACTS_DEFAULT;
+    }
+
+    private void printMeasurements(SensorDataCarrier data) {
+        if (isRawDataLogEnabled) {
+            log.d(TAG, Arrays.toString(data.getRawData()));
+        }
+        log.i(TAG, Arrays.toString(data.getRawMeasurements().toArray()));
+    }
+
+    private void printNoSignalInfo() {
+        if (SensorConnectionImpl.noSignalCounter == NO_SIGNAL_COUNTER_RESET_VALUE) {
+            log.w(TAG, "NO SIGNAL");
+        }
     }
 
     private void initializeLayout() {
@@ -390,7 +394,7 @@ public class MainActivity extends AppCompatActivity {
     public void onClickRawDataLog(View view) {
         log.i(TAG, "---onClickRawDataShow");
         isRawDataLogEnabled = !isRawDataLogEnabled;
-        updateRawDataLogView();
+        updateRawDataLogBtn();
     }
 
     public void onClickReset(View view) {
@@ -412,11 +416,11 @@ public class MainActivity extends AppCompatActivity {
         updateImpactsCounterView();
         updateMeasurementCounterView();
         updateRecordingButtonView();
-        updateRawDataLogView();
+        updateRawDataLogBtn();
         log.i(TAG, "DATA CLEARED");
     }
 
-    private void updateRawDataLogView() {
+    private void updateRawDataLogBtn() {
         Button btnRawDataLog = findViewById(R.id.btnRawDataLog);
         if (isRawDataLogEnabled) {
             log.i(TAG, "RAW DATA SHOW ENABLED");

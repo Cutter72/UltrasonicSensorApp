@@ -8,6 +8,8 @@ import androidx.annotation.NonNull;
 
 import com.cutter72.ultrasonicsensor.android.ConsoleViewLogger;
 import com.cutter72.ultrasonicsensor.android.ConsoleViewLoggerImpl;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -19,6 +21,8 @@ public class SensorConnectionImpl implements SensorConnection {
     // RS-232 connection params
     private final static String TAG = SensorConnectionImpl.class.getSimpleName();
     public final static int DEFAULT_BUFFER_TIME_OUT_MILLIS = 100;
+    public static final int NO_SIGNAL_COUNTER_RESET_VALUE = 1;
+    public static final int NO_SIGNAL_COUNTER_INITIAL_VALUE = 0;
     private final int DEFAULT_BUFFER_SIZE = 99;
     private final int DEFAULT_BAUD_RATE = 9600;
     private final int DEFAULT_DATA_BITS = 8;
@@ -34,7 +38,7 @@ public class SensorConnectionImpl implements SensorConnection {
     private UsbDeviceConnection sensorUsbDeviceConnection;
     private UsbSerialPort sensorUsbSerialPort;
 
-    public static int noSignalCounter = 0;
+    public static int noSignalCounter = NO_SIGNAL_COUNTER_INITIAL_VALUE;
 
     public SensorConnectionImpl(UsbManager usbManager) {
         this.usbManager = usbManager;
@@ -145,23 +149,32 @@ public class SensorConnectionImpl implements SensorConnection {
 
     @NonNull
     @Override
-    public byte[] readRawData() {
-        return readRawData(new byte[DEFAULT_BUFFER_SIZE]);
+    public SensorDataCarrier readData() {
+        return readData(new byte[DEFAULT_BUFFER_SIZE]);
     }
 
     @NonNull
     @Override
-    public byte[] readRawData(@NonNull byte[] buffer) {
-        if (isOpen()) {
+    public SensorDataCarrier readData(@NonNull byte[] buffer) {
+        SensorDataCarrier data = new SensorDataCarrierImpl();
+        if (sensorUsbSerialPort.isOpen()) {
             try {
                 sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
+                data.addRawData(buffer);
+                if (data.size() < 1) {
+                    if (noSignalCounter % 10 == 0) {
+                        noSignalCounter = NO_SIGNAL_COUNTER_RESET_VALUE;
+                    } else {
+                        noSignalCounter++;
+                    }
+                }
             } catch (IOException | NullPointerException e) {
                 log.logException(TAG, e);
             }
         } else {
             log.i(TAG, "noConnectionOpenCannotReadData");
         }
-        return buffer;
+        return data;
     }
 
     @Override
@@ -169,7 +182,25 @@ public class SensorConnectionImpl implements SensorConnection {
         clearHardwareInputOutputBuffers();
         closeSerialPort();
         closeUsbDeviceConnection();
+        clearNoSignalCounter();
         log.i(TAG, "CONNECTION CLOSED");
+    }
+
+    @Override
+    public boolean clearHardwareInputOutputBuffers() {
+        if (sensorUsbSerialPort != null) {
+            try {
+                sensorUsbSerialPort.purgeHwBuffers(true, true);
+                return true;
+            } catch (IOException | NullPointerException e) {
+                log.logException(TAG, e);
+            }
+        }
+        return false;
+    }
+
+    private void clearNoSignalCounter() {
+        noSignalCounter = NO_SIGNAL_COUNTER_INITIAL_VALUE;
     }
 
     private void closeSerialPort() {
@@ -188,18 +219,5 @@ public class SensorConnectionImpl implements SensorConnection {
             sensorUsbDeviceConnection.close();
             sensorUsbDeviceConnection = null;
         }
-    }
-
-    @Override
-    public boolean clearHardwareInputOutputBuffers() {
-        if (sensorUsbSerialPort != null) {
-            try {
-                sensorUsbSerialPort.purgeHwBuffers(true, true);
-                return true;
-            } catch (IOException | NullPointerException e) {
-                log.logException(TAG, e);
-            }
-        }
-        return false;
     }
 }
