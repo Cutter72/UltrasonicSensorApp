@@ -24,6 +24,12 @@ import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataCallback;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
+import com.cutter72.ultrasonicsensor.sensor.solids.DataStorage;
+import com.cutter72.ultrasonicsensor.sensor.solids.DataStorageImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
@@ -45,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
 
     //RS232 connection
     private SensorConnection sensorConnection;
+    private DataStorage dataStorage;
+    private DataListener dataListener;
     //todo create SensorDataRecorder
     //todo add logger
     public static boolean isOpened = false;
@@ -56,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
     //layout
     private final int SEEKBAR_MAX_VALUE = 19;
+    //todo make consol view with a global access from all classes
     private ConsoleView consoleView;
     private int btnBackgroundColor;
 
@@ -75,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
 
     // print data in the console view
     private final int MEASUREMENTS_IN_ONE_LINE = 18;
-    private final int CONSOLE_LINES_LIMIT = 999;
     private boolean isRawDataLogEnabled = false;
 
     //count impacts
@@ -101,6 +109,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeFields() {
         sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
+        dataStorage = new DataStorageImpl();
+        dataListener = new DataListenerImpl(sensorConnection, new DataCallback<byte[]>() {
+            @Override
+            public void accept(byte[] bytes) {
+                List<Measurement> measurementsChunk;
+                if (isRecording) {
+                    measurementsChunk = dataStorage.addRawData(bytes);
+                } else {
+                    measurementsChunk = new DataDecoderImpl().decodeDataFromSensor(bytes);
+                }
+                runOnUiThread(() ->
+                        consoleView.println(Arrays.toString(measurementsChunk.toArray()))
+                );
+            }
+        });
         isRawDataLogEnabled = false;
         rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
         previousImpactTimestamp = 0;
@@ -238,14 +261,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickOpenConnection(View view) {
-        if (isOpened) {
-            consoleView.println("---onClickCloseConnection");
-            isRecording = false;
+        consoleView.println("---onClickOpenConnection");
+        if (sensorConnection.isOpen()) {
             closeConnection();
         } else {
-            consoleView.println("---onClickOpenConnection");
-            mik3yConnection();
+            dataListener.startListening();
         }
+//        if (isOpened) {
+//            consoleView.println("---onClickCloseConnection");
+//            isRecording = false;
+//            closeConnection();
+//        } else {
+//            consoleView.println("---onClickOpenConnection");
+//            mik3yConnection();
+//        }
     }
 
     public void onClickSaveDataToCsv(View view) {
@@ -361,18 +390,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void closeConnection() {
-        if (connection != null) {
-            try {
-                port.close();
-                isOpened = false;
-                isRecording = false;
-                updateConnectionButtonView();
-                updateRecordingButtonView();
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
-            }
-            connection.close();
-        }
+        dataListener.stopListening();
+//        if (connection != null) {
+//            try {
+//                port.close();
+//                isOpened = false;
+//                isRecording = false;
+//                updateConnectionButtonView();
+//                updateRecordingButtonView();
+//            } catch (IOException e) {
+//                System.out.println(e.getMessage());
+//            }
+//            connection.close();
+//        }
         consoleView.println("CONNECTION CLOSED");
     }
 
@@ -611,51 +641,51 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickRecording(View view) {
         consoleView.println("---onClickRecording");
-        if (port != null) {
-            try {
-                port.purgeHwBuffers(true, true);
-            } catch (IOException | NullPointerException ex) {
-                ex.printStackTrace();
-                consoleView.println(ex);
-            }
-        }
-        if (isOpened) {
-            if (isRecording) {
-                consoleView.println("STOP RECORDING");
-                isRecording = false;
-            } else {
-                consoleView.println("START RECORDING");
-                isRecording = true;
-                Runnable delayedRunnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        while (isRecording) {
-                            waitForData();
-                            MainActivity.instance.bufferRead();
-                            MainActivity.instance.processInputDataFromSensor();
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (consoleView.getSize() > CONSOLE_LINES_LIMIT) {
-                                        consoleView.clear();
-                                        consoleView.println("CONSOLE CLEARED");
-                                    }
-                                }
-                            });
-                        }
-                        try {
-                            Thread.currentThread().join();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                };
-                new Thread(delayedRunnable).start();
-            }
-            updateRecordingButtonView();
-        } else {
-            consoleView.println("CONNECTION IS NOT OPEN");
-        }
+//        if (port != null) {
+//            try {
+//                port.purgeHwBuffers(true, true);
+//            } catch (IOException | NullPointerException ex) {
+//                ex.printStackTrace();
+//                consoleView.println(ex);
+//            }
+//        }
+//        if (isOpened) {
+//            if (isRecording) {
+//                consoleView.println("STOP RECORDING");
+//                isRecording = false;
+//            } else {
+//                consoleView.println("START RECORDING");
+//                isRecording = true;
+//                Runnable delayedRunnable = new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        while (isRecording) {
+//                            waitForData();
+//                            MainActivity.instance.bufferRead();
+//                            MainActivity.instance.processInputDataFromSensor();
+//                            runOnUiThread(new Runnable() {
+//                                @Override
+//                                public void run() {
+//                                    if (consoleView.getSize() > CONSOLE_LINES_LIMIT) {
+//                                        consoleView.clear();
+//                                        consoleView.println("CONSOLE CLEARED");
+//                                    }
+//                                }
+//                            });
+//                        }
+//                        try {
+//                            Thread.currentThread().join();
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                };
+//                new Thread(delayedRunnable).start();
+//            }
+//            updateRecordingButtonView();
+//        } else {
+//            consoleView.println("CONNECTION IS NOT OPEN");
+//        }
     }
 
     private void waitForData() {

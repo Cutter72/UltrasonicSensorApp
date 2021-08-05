@@ -1,16 +1,22 @@
 package com.cutter72.ultrasonicsensor.android;
 
-import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-@SuppressWarnings("Convert2Lambda")
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.util.Locale;
+
+@SuppressWarnings({"Convert2Lambda", "FieldCanBeLocal"})
 public class ConsoleView {
-    private LinearLayout linearLayout;
-    private ScrollView scrollView;
+    private final int CONSOLE_LINE_CHARS_LIMIT = 99999;
+    private final int CONSOLE_LINES_LIMIT = 999;
+    private final LinearLayout linearLayout;
+    private final ScrollView scrollView;
     private TextView previousLine;
 
     public ConsoleView(LinearLayout linearLayout, ScrollView scrollView) {
@@ -25,37 +31,84 @@ public class ConsoleView {
     }
 
     public void println() {
-        Context context = linearLayout.getContext();
-        previousLine = new TextView(context);
-        previousLine.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        previousLine.setText("");
-        linearLayout.addView(previousLine);
+        println(null);
     }
 
-    public void println(Object object) {
-        String text = object.toString();
-        System.out.println(text);
-        Context context = linearLayout.getContext();
-        previousLine = new TextView(context);
-        previousLine.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-        previousLine.setText(text);
-        linearLayout.addView(previousLine);
+    public void println(@Nullable Object object) {
+        printf("%s%n", object);
+//        String text;
+//        if (object != null) {
+//            text = object.toString();
+//        } else{
+//            text = "";
+//        }
+//        clearIfFull();
+//        System.out.println(text);
+//        previousLine = createLineView();
+//        previousLine.setText(text);
+//        linearLayout.addView(previousLine);
     }
 
-    public void print(Object object) {
+    private void clearIfFull() {
+        if (isFull()) {
+            clear();
+        }
+    }
+
+    private boolean isFull() {
+        if (previousLine != null) {
+            return getSize() > CONSOLE_LINES_LIMIT || previousLine.getText().length() > CONSOLE_LINE_CHARS_LIMIT;
+        } else {
+            return getSize() > CONSOLE_LINES_LIMIT;
+        }
+    }
+
+    private TextView createLineView() {
+        TextView lineView = new TextView(linearLayout.getContext());
+        lineView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+        return lineView;
+    }
+
+    public void print(@Nullable Object object) {
+        printf("%s", object);
+//        String text;
+//        if (object != null) {
+//            text = object.toString();
+//        } else{
+//            text = "";
+//        }
+//        clearIfFull();
+//        boolean isNewLine = false;
+//        System.out.print(text);
+//        if (previousLine == null) {
+//            previousLine = createLineView();
+//            isNewLine = true;
+//        }
+//        String textToSet = previousLine.getText().toString() + text;
+//        previousLine.setText(textToSet);
+//        if (isNewLine) {
+//            linearLayout.addView(previousLine);
+//        }
+    }
+
+    public void clear() {
+        linearLayout.removeAllViews();
+        previousLine = null;
+    }
+
+    public int getSize() {
+        return linearLayout.getChildCount();
+    }
+
+    public void printf(@NonNull String s, Object... args) {
+        String text = String.format(Locale.getDefault(), s, args);
+        clearIfFull();
         boolean isNewLine = false;
-        String text = object.toString();
         System.out.print(text);
-        Context context = linearLayout.getContext();
         if (previousLine == null) {
-            previousLine = new TextView(context);
-            previousLine.setLayoutParams(new ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
+            previousLine = createLineView();
             isNewLine = true;
         }
         String textToSet = previousLine.getText().toString() + text;
@@ -63,13 +116,5 @@ public class ConsoleView {
         if (isNewLine) {
             linearLayout.addView(previousLine);
         }
-    }
-
-    public void clear() {
-        linearLayout.removeAllViews();
-    }
-
-    public int getSize() {
-        return linearLayout.getChildCount();
     }
 }

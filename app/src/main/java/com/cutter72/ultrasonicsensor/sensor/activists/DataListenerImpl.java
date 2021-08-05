@@ -25,24 +25,27 @@ public class DataListenerImpl implements DataListener {
 
     @Override
     public void startListening() {
-        isListening = true;
-        sensorConnection.open();
-        executorService.submit(() -> {
-            sensorConnection.clearHardwareInputOutputBuffers();
-            while (isListening) {
-                if (waitForData()) {
-                    try {
-                        dataCallback.accept(sensorConnection.readRawData());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        CrashReporter.logException(e);
+        if (sensorConnection.open()) {
+            isListening = true;
+            executorService.submit(() -> {
+                sensorConnection.clearHardwareInputOutputBuffers();
+                while (isListening) {
+                    if (waitForData()) {
+                        try {
+                            dataCallback.accept(sensorConnection.readRawData());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            CrashReporter.logException(e);
+                            stopListening();
+                        }
+                    } else {
                         stopListening();
                     }
-                } else {
-                    stopListening();
                 }
-            }
-        });
+            });
+        } else {
+            System.out.println("openConnectionFailure");
+        }
     }
 
     private boolean waitForData() {
@@ -64,9 +67,6 @@ public class DataListenerImpl implements DataListener {
     @Override
     public void stopListening() {
         isListening = false;
-        if (!executorService.isShutdown()) {
-            executorService.shutdownNow();
-        }
         try {
             sensorConnection.close();
         } catch (IOException e) {
