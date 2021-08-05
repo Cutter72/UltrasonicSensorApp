@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value in centimeters from ToughSonic Sensor 12 data sheet
     public static MainActivity instance;
     public static boolean isRecording = false;
-    private LogWrapper log;
+    private ConsoleViewLogger log;
 
     //RS232 connection
     private SensorConnection sensorConnection;
@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeLogger() {
         consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
-        log = LogWrapper.initializeLogger(consoleView);
+        log = ConsoleViewLoggerImpl.initializeLogger(consoleView);
         log.i(TAG, "Console view created.");
     }
 
