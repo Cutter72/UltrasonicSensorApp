@@ -34,6 +34,8 @@ public class SensorConnectionImpl implements SensorConnection {
     private UsbDeviceConnection sensorUsbDeviceConnection;
     private UsbSerialPort sensorUsbSerialPort;
 
+    public static int noSignalCounter = 0;
+
     public SensorConnectionImpl(UsbManager usbManager) {
         this.usbManager = usbManager;
         this.log = ConsoleViewLoggerImpl.getInstance();
@@ -71,7 +73,6 @@ public class SensorConnectionImpl implements SensorConnection {
 
     @Override
     public boolean isOpen() {
-        log.i(TAG, "isSensorConnectionOpen");
         if (sensorUsbSerialPort != null) {
             return sensorUsbSerialPort.isOpen();
         }
@@ -155,7 +156,6 @@ public class SensorConnectionImpl implements SensorConnection {
     @NonNull
     @Override
     public byte[] readRawData(@NonNull byte[] buffer) {
-        log.i(TAG, "readRawData");
         if (isOpen()) {
             try {
                 sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);

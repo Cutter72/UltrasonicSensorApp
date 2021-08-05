@@ -122,9 +122,18 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     measurementsChunk = new DataDecoderImpl().decodeDataFromSensor(bytes);
                 }
-                runOnUiThread(() ->
-                        log.i(TAG, Arrays.toString(measurementsChunk.toArray()))
-                );
+                if (measurementsChunk.size() > 0) {
+                    runOnUiThread(() ->
+                            log.i(TAG, Arrays.toString(measurementsChunk.toArray()))
+                    );
+                } else {
+                    if (SensorConnectionImpl.noSignalCounter % 10 == 0) {
+                        log.w(TAG, "NO SIGNAL");
+                        SensorConnectionImpl.noSignalCounter = 1;
+                    } else {
+                        SensorConnectionImpl.noSignalCounter++;
+                    }
+                }
             }
         });
         isRawDataLogEnabled = false;
@@ -404,7 +413,6 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //            connection.close();
 //        }
-        log.i(TAG, "CONNECTION CLOSED");
     }
 
     private void findAllAvailableDriversFromAttachedDevices() {
