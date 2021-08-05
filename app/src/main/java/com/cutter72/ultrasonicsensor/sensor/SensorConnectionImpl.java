@@ -41,10 +41,6 @@ public class SensorConnectionImpl implements SensorConnection {
         this.log = ConsoleViewLoggerImpl.getInstance();
     }
 
-    public UsbSerialPort getSensorUsbSerialPort() {
-        return sensorUsbSerialPort;
-    }
-
     @Override
     public boolean open() {
         log.i(TAG, "openConnectionToSensor");

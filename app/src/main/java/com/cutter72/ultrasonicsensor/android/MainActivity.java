@@ -1,7 +1,6 @@
 package com.cutter72.ultrasonicsensor.android;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbDeviceConnection;
@@ -18,7 +17,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.R;
 import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
@@ -33,10 +31,8 @@ import com.cutter72.ultrasonicsensor.sensor.solids.DataStorageImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -274,19 +270,12 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickOpenConnection(View view) {
         log.i(TAG, "---onClickOpenConnection");
-        if (sensorConnection.isOpen()) {
-            closeConnection();
+        if (dataListener.isListening()) {
+            dataListener.stopListening();
         } else {
             dataListener.startListening();
         }
-//        if (isOpened) {
-//            log.i(TAG, "---onClickCloseConnection");
-//            isRecording = false;
-//            closeConnection();
-//        } else {
-//            log.i(TAG, "---onClickOpenConnection");
-//            mik3yConnection();
-//        }
+        updateConnectionButtonView();
     }
 
     public void onClickSaveDataToCsv(View view) {
@@ -347,156 +336,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void mik3yConnection() {
-        try {
-            findAllAvailableDriversFromAttachedDevices();
-            if (availableDrivers.size() > 0) {
-                openConnectionToTheFirstAvailableDriver();
-                openPort();
-            } else {
-                log.i(TAG, "noDriversFound");
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            log.i(TAG, ex.toString());
-        }
-    }
-
-    private void openPort() {
-        port = driver.getPorts().get(0); // Most devices have just one port (port 0)
-        try {
-            port.open(connection);
-            port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-            log.i(TAG, "PORT OPEN");
-            isOpened = true;
-            updateConnectionButtonView();
-        } catch (IOException e) {
-            log.logException(TAG, e);
-        }
-    }
-
     private void updateConnectionButtonView() {
         Button btnOpenConnection = findViewById(R.id.openConnection);
-        if (isOpened) {
+        if (dataListener.isListening()) {
             btnOpenConnection.setText(R.string.close_connection);
             btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
         } else {
             btnOpenConnection.setText(R.string.open_connection);
             btnOpenConnection.setBackgroundColor(btnBackgroundColor);
-        }
-    }
-
-    private void openConnectionToTheFirstAvailableDriver() {
-        // Open a connection to the first available driver.
-        log.i(TAG, "openConnectionToTheFirstAvailableDriver");
-        driver = availableDrivers.get(0);
-        connection = manager.openDevice(driver.getDevice());
-        if (connection == null) {
-            // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            log.i(TAG, "connection == null");
-            return;
-        }
-        log.i(TAG, "CONNECTION OPEN");
-    }
-
-    private void closeConnection() {
-        dataListener.stopListening();
-//        if (connection != null) {
-//            try {
-//                port.close();
-//                isOpened = false;
-//                isRecording = false;
-//                updateConnectionButtonView();
-//                updateRecordingButtonView();
-//            } catch (IOException e) {
-//                System.out.println(e.getMessage());
-//            }
-//            connection.close();
-//        }
-    }
-
-    private void findAllAvailableDriversFromAttachedDevices() {
-        // Find all available drivers from attached devices.
-        log.i(TAG, "findAllAvailableDriversFromAttachedDevices");
-        manager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
-        if (availableDrivers.isEmpty()) {
-            log.i(TAG, "availableDrivers.isEmpty");
-        } else {
-            for (int i = 0; i < availableDrivers.size(); i++) {
-                UsbSerialDriver availableDriver = availableDrivers.get(i);
-                log.i(TAG, "---device---" + i);
-                log.i(TAG, "availableDriver device: " + availableDriver.getDevice());
-                log.i(TAG, "availableDriver ports: " + availableDriver.getPorts());
-                log.i(TAG, "------");
-            }
-        }
-    }
-
-    private void bufferRead() {
-        readDataBuffer = new byte[BUFFER_SIZE];
-        if (port != null) {
-            try {
-                port.read(readDataBuffer, BUFFER_TIME_OUT);
-                if (isRawDataLogEnabled) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            log.i(TAG, Arrays.toString(readDataBuffer));
-                        }
-                    });
-                }
-            } catch (IOException | NullPointerException ex) {
-                ex.printStackTrace();
-//                CrashReporter.logException(ex);
-            }
-        } else {
-            CrashReporter.logException(new RuntimeException("port == null"));
-        }
-    }
-
-    private void processInputDataFromSensor() {
-        for (byte e : readDataBuffer) {
-            if (e != 0) {
-                if (e == 13) {
-                    if (rawSensorUnitsBuffer.size() == 5) {
-                        Measurement measurement = mergeSensorRawDataIntoCentimeterMeasurement();
-                        allMeasurements.add(measurement);
-                        fillMeasurementsBuffer(measurement);
-                        if (isMeasurementsBufferFull()) {
-                            filterMeasurements();
-                        }
-                        if (isImpactFound()) {
-                            runOnUiThread(this::updateImpactsCounterView);
-                        }
-                        if ((allNonZeroMeasurements.size() % MEASUREMENTS_IN_ONE_LINE == 0) ^ allNonZeroMeasurements.size() == 0) {
-                            runOnUiThread(this::printLatest18MeasurementsAndUpdateCounter);
-                        }
-                    }
-                    rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
-                } else {
-                    int decodedDecimalNumber = decodeDecimalNumber(e);
-                    rawSensorUnitsBuffer.add(decodedDecimalNumber);
-                }
-            } else {
-                break;
-            }
-        }
-    }
-
-    private boolean isMeasurementsBufferFull() {
-        return measurementsBuffer.size() == MEASUREMENTS_BUFFER_SIZE;
-    }
-
-    private void fillMeasurementsBuffer(Measurement measurement) {
-        if (measurement.getDistanceCentimeters() > 0) {
-            if (isMeasurementsBufferFull()) {
-                measurementsBuffer.remove(0);
-            }
-            measurementsBuffer.add(measurement);
-        } else {
-            filteredOutMeasurements.add(measurement);
-            zeroMeasurements.add(measurement);
         }
     }
 
@@ -525,61 +372,6 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
     }
 
-    private Measurement mergeSensorRawDataIntoCentimeterMeasurement() {
-        int sensorUnits = mergeDataIntoSensorUnits();
-        double distance = calculateDistance(sensorUnits);
-        return new Measurement(distance);
-    }
-
-    private void filterMeasurements() {
-        //todo impl
-        List<Measurement> buffer = new ArrayList<>(measurementsBuffer);
-        Measurement oldestMeasurement = buffer.get(0);
-        Measurement min = oldestMeasurement;
-        Measurement max = oldestMeasurement;
-        double median;
-        for (Measurement measurement : buffer) {
-            if (measurement.getDistanceCentimeters() < min.getDistanceCentimeters()) {
-                min = measurement;
-            } else if (measurement.getDistanceCentimeters() > max.getDistanceCentimeters()) {
-                max = measurement;
-            }
-        }
-        int measurementsBufferSize = buffer.size();
-        Collections.sort(buffer);
-        if (measurementsBufferSize % 2 == 0) {
-            int index = measurementsBufferSize / 2 - 1;
-            median = (buffer.get(index).getDistanceCentimeters() + buffer.get(++index).getDistanceCentimeters()) / 2;
-        } else {
-            int index = (measurementsBufferSize + 1) / 2 - 1;
-            median = buffer.get(index).getDistanceCentimeters();
-        }
-        for (Measurement measurement : buffer) {
-            if (Math.abs(measurement.getDistanceCentimeters() - median) > MAX_MEASUREMENT_DEVIATION) {
-                filteredOutMeasurements.add(measurement);
-                measurementsBuffer.remove(measurement);
-            } else {
-                filteredMeasurements.add(measurement);
-            }
-        }
-    }
-
-    private int decodeDecimalNumber(byte b) {
-        return b - 48;
-    }
-
-    private double calculateDistance(int sensorUnits) {
-        return Math.round(sensorUnits * CENTIMETERS_UNIT_FACTOR * 100) / 100.0;
-    }
-
-    private int mergeDataIntoSensorUnits() {
-        return rawSensorUnitsBuffer.get(0) * 10000 +
-                rawSensorUnitsBuffer.get(1) * 1000 +
-                rawSensorUnitsBuffer.get(2) * 100 +
-                rawSensorUnitsBuffer.get(3) * 10 +
-                rawSensorUnitsBuffer.get(4);
-    }
-
     private void updateMeasurementCounterView() {
         ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allNonZeroMeasurements.size()));
     }
@@ -604,7 +396,7 @@ public class MainActivity extends AppCompatActivity {
     public void onClickReset(View view) {
         consoleView.clear();
         log.i(TAG, "---onClickReset");
-        closeConnection();
+        dataListener.stopListening();
         allNonZeroMeasurements.clear();
         rawSensorUnitsBuffer.clear();
         isRawDataLogEnabled = false;
@@ -650,59 +442,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickRecording(View view) {
         log.i(TAG, "---onClickRecording");
-//        if (port != null) {
-//            try {
-//                port.purgeHwBuffers(true, true);
-//            } catch (IOException | NullPointerException ex) {
-//                ex.printStackTrace();
-//                log.i(TAG, ex);
-//            }
-//        }
-//        if (isOpened) {
-//            if (isRecording) {
-//                log.i(TAG, "STOP RECORDING");
-//                isRecording = false;
-//            } else {
-//                log.i(TAG, "START RECORDING");
-//                isRecording = true;
-//                Runnable delayedRunnable = new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        while (isRecording) {
-//                            waitForData();
-//                            MainActivity.instance.bufferRead();
-//                            MainActivity.instance.processInputDataFromSensor();
-//                            runOnUiThread(new Runnable() {
-//                                @Override
-//                                public void run() {
-//                                    if (consoleView.getSize() > CONSOLE_LINES_LIMIT) {
-//                                        consoleView.clear();
-//                                        log.i(TAG, "CONSOLE CLEARED");
-//                                    }
-//                                }
-//                            });
-//                        }
-//                        try {
-//                            Thread.currentThread().join();
-//                        } catch (InterruptedException e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                };
-//                new Thread(delayedRunnable).start();
-//            }
-//            updateRecordingButtonView();
-//        } else {
-//            log.i(TAG, "CONNECTION IS NOT OPEN");
-//        }
-    }
-
-    private void waitForData() {
-        try {
-            Thread.sleep(BUFFER_TIME_OUT);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        //todo impl
     }
 
     public void onClickClearConsole(View view) {

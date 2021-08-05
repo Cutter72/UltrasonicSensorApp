@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import com.balsikandar.crashreporter.CrashReporter;
 
 public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
-    private static ConsoleViewLoggerImpl instance;
+    private static ConsoleViewLogger instance;
     private Activity activity;
     private ConsoleViewImpl consoleView;
 
@@ -18,14 +18,15 @@ public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
         this.consoleView = consoleView;
     }
 
-    public static synchronized ConsoleViewLoggerImpl getInstance() {
+    public static synchronized ConsoleViewLogger getInstance() {
         if (instance == null) {
-            throw new RuntimeException("Logger not initialized! Use LogWrapper#initializeLogger(@NonNull ConsoleViewImpl consoleView) first!");
+            throw new RuntimeException("Logger not initialized! Use method " +
+                    "LogWrapper#initializeLogger(@NonNull ConsoleViewImpl consoleView) first!");
         }
         return instance;
     }
 
-    public static synchronized ConsoleViewLoggerImpl initializeLogger(@NonNull Activity activity, @NonNull ConsoleViewImpl consoleView) {
+    public static synchronized ConsoleViewLogger initializeLogger(@NonNull Activity activity, @NonNull ConsoleViewImpl consoleView) {
         if (instance == null) {
             instance = new ConsoleViewLoggerImpl(activity, consoleView);
         }
