@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor.android;
+package com.cutter72.ultrasonicsensor.android.other;
 
 import android.view.View;
 import android.view.ViewGroup;

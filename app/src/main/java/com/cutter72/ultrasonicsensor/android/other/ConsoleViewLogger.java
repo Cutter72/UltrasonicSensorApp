@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor.android;
+package com.cutter72.ultrasonicsensor.android.other;
 
 public interface ConsoleViewLogger {
     void logException(String tag, Exception e);

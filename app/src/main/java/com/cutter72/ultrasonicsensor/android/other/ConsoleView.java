@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor.android;
+package com.cutter72.ultrasonicsensor.android.other;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;

@@ -6,8 +6,8 @@ import android.hardware.usb.UsbManager;
 
 import androidx.annotation.NonNull;
 
-import com.cutter72.ultrasonicsensor.android.ConsoleViewLogger;
-import com.cutter72.ultrasonicsensor.android.ConsoleViewLoggerImpl;
+import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLogger;
+import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLoggerImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;

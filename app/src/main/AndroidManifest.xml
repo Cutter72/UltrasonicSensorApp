@@ -20,7 +20,7 @@
         <!--        <uses-library android:name="com.google.android.things" />-->
 
         <activity
-            android:name=".android.MainActivity"
+            android:name=".android.activities.MainActivity"
             android:screenOrientation="userLandscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

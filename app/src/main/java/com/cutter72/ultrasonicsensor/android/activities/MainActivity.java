@@ -1,4 +1,4 @@
-package com.cutter72.ultrasonicsensor.android;
+package com.cutter72.ultrasonicsensor.android.activities;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -18,6 +18,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import com.cutter72.ultrasonicsensor.R;
+import com.cutter72.ultrasonicsensor.android.other.ConsoleViewImpl;
+import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLogger;
+import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLoggerImpl;
 import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
