@@ -44,7 +44,6 @@ public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
     @Override
     public void v(String tag, String msg) {
         Log.v(tag, msg);
-        activity.runOnUiThread(() -> consoleView.println(msg));
     }
 
     @Override

@@ -78,17 +78,10 @@ public class MainActivity extends AppCompatActivity {
         initializeLayout();
     }
 
-    private void printMeasurements(SensorDataCarrier data) {
-        if (isRawDataLogEnabled) {
-            log.d(TAG, Arrays.toString(data.getRawData()));
-        }
-        log.i(TAG, Arrays.toString(data.getRawMeasurements().toArray()));
-    }
-
-    private void printNoSignalInfo() {
-        if (SensorConnectionImpl.noSignalCounter == NO_SIGNAL_COUNTER_RESET_VALUE) {
-            log.w(TAG, "NO SIGNAL");
-        }
+    @Override
+    protected void onPause() {
+        super.onPause();
+//        isRecording = false;
     }
 
     private void initializeLayout() {
@@ -100,16 +93,116 @@ public class MainActivity extends AppCompatActivity {
         impacts = IMPACTS_DEFAULT;
         initializeLogger();
         initializeSeekBar();
+        initializeRecordingBtn();
         initializeNumberPickers();
         initializeSensorDataListener();
-        initializeRecordingBtn();
+    }
+
+    private void initializeLogger() {
+        consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
+        log = ConsoleViewLoggerImpl.initializeLogger(this, consoleView);
+        log.i(TAG, "Console view created.");
+    }
+
+    private void initializeSeekBar() {
+        SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
+        minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(convertToMillis(seekBar)));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                minTimeIntervalBetweenImpactMillis = convertToMillis(seekBar);
+                updateIntervalSeekBarLabel();
+            }
+        });
+        updateIntervalSeekBarView();
         updateIntervalSeekBarLabel();
+    }
+
+    private int convertToMillis(SeekBar seekBar) {
+        return seekBar.getProgress() * 50 + 50;
+    }
+
+    private void updateIntervalSeekBarView() {
+        ((SeekBar) findViewById(R.id.minTimeIntervalSeekBar)).setProgress(convertToSeekBarProgressValue());
+    }
+
+    private int convertToSeekBarProgressValue() {
+        return (minTimeIntervalBetweenImpactMillis - 50) / 50;
+    }
+
+    private void updateIntervalSeekBarLabel() {
+        ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
     }
 
     private void initializeRecordingBtn() {
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
         btnDefaultBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+    }
+
+    private void initializeNumberPickers() {
+        filterValuePickerIndex = DEFAULT_FILTER_PICKER_INDEX;
+        minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
+        NumberPicker minDifferencePicker = findViewById(R.id.minDifferencePicker);
+        minDifferencePicker.setMinValue(0);
+        minDifferencePicker.setMaxValue(minDiffValues.length - 1);
+        minDifferencePicker.setDisplayedValues(transformToStringArray(minDiffValues));
+        minDifferencePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+            @Override
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                setMinDiffValue(newVal);
+            }
+        });
+        NumberPicker filterValuePicker = findViewById(R.id.avgMeasurementsPicker);
+        filterValuePicker.setMinValue(0);
+        filterValuePicker.setMaxValue(filterValues.length - 1);
+        filterValuePicker.setDisplayedValues(transformToStringArray(filterValues));
+        filterValuePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+            @Override
+            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
+                setFilterValue(newVal);
+            }
+        });
+        updateMinDiffValuePickerView();
+        updateFilterValuePickerView();
+    }
+
+    private String[] transformToStringArray(double[] doubleTab) {
+        String[] result = new String[doubleTab.length];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = String.valueOf(doubleTab[i]);
+        }
+        return result;
+    }
+
+    private void setMinDiffValue(int newIndex) {
+        minDifferencePickerIndex = newIndex;
+        if (filterValuePickerIndex > newIndex) {
+            filterValuePickerIndex = newIndex;
+        }
+    }
+
+    private void setFilterValue(int newIndex) {
+        filterValuePickerIndex = newIndex;
+        if (minDifferencePickerIndex > newIndex) {
+            minDifferencePickerIndex = newIndex;
+        }
+    }
+
+    private void updateMinDiffValuePickerView() {
+        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(minDifferencePickerIndex);
+    }
+
+    private void updateFilterValuePickerView() {
+        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(filterValuePickerIndex);
     }
 
     private void initializeSensorDataListener() {
@@ -132,118 +225,17 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void initializeLogger() {
-        consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
-        log = ConsoleViewLoggerImpl.initializeLogger(this, consoleView);
-        log.i(TAG, "Console view created.");
-    }
-
-    private void initializeSeekBar() {
-        SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
-        updateIntervalSeekBarView();
-        minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(convertToMillis(seekBar)));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                minTimeIntervalBetweenImpactMillis = convertToMillis(seekBar);
-                updateIntervalSeekBarLabel();
-            }
-        });
-    }
-
-    private int convertToMillis(SeekBar seekBar) {
-        return seekBar.getProgress() * 50 + 50;
-    }
-
-    private void initializeNumberPickers() {
-        filterValuePickerIndex = DEFAULT_FILTER_PICKER_INDEX;
-        minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
-        NumberPicker minDifferencePicker = findViewById(R.id.minDifferencePicker);
-        minDifferencePicker.setMinValue(0);
-        minDifferencePicker.setMaxValue(minDiffValues.length - 1);
-        minDifferencePicker.setDisplayedValues(transformToStringArray(minDiffValues));
-        updateMinDiffValuePickerView();
-        minDifferencePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
-            @Override
-            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
-                setMinDiffValue(newVal);
-            }
-        });
-        NumberPicker filterValuePicker = findViewById(R.id.avgMeasurementsPicker);
-        filterValuePicker.setMinValue(0);
-        filterValuePicker.setMaxValue(filterValues.length - 1);
-        filterValuePicker.setDisplayedValues(transformToStringArray(filterValues));
-        updateFilterValuePickerView();
-        filterValuePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
-            @Override
-            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
-                setFilterValue(newVal);
-            }
-        });
-    }
-
-    private void updateIntervalSeekBarLabel() {
-        ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
-    }
-
-    private void updateIntervalSeekBarView() {
-        ((SeekBar) findViewById(R.id.minTimeIntervalSeekBar)).setProgress(convertToSeekBarProgressValue());
-    }
-
-    private int convertToSeekBarProgressValue() {
-        return (minTimeIntervalBetweenImpactMillis - 50) / 50;
-    }
-
-    private void updateMinDiffValuePickerView() {
-        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(minDifferencePickerIndex);
-    }
-
-    private void updateFilterValuePickerView() {
-        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(filterValuePickerIndex);
-    }
-
-    private void setMinDiffValue(int newIndex) {
-        minDifferencePickerIndex = newIndex;
-        if (filterValuePickerIndex > newIndex) {
-            filterValuePickerIndex = newIndex;
+    private void printMeasurements(SensorDataCarrier data) {
+        if (isRawDataLogEnabled) {
+            log.d(TAG, Arrays.toString(data.getRawData()));
         }
+        log.i(TAG, Arrays.toString(data.getRawMeasurements().toArray()));
     }
 
-    private void setFilterValue(int newIndex) {
-        filterValuePickerIndex = newIndex;
-        if (minDifferencePickerIndex > newIndex) {
-            minDifferencePickerIndex = newIndex;
+    private void printNoSignalInfo() {
+        if (SensorConnectionImpl.noSignalCounter == NO_SIGNAL_COUNTER_RESET_VALUE) {
+            log.w(TAG, "NO SIGNAL");
         }
-    }
-
-    private String[] transformToStringArray(double[] doubleTab) {
-        String[] result = new String[doubleTab.length];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = String.valueOf(doubleTab[i]);
-        }
-        return result;
-    }
-
-    private String[] transformToStringArray(int[] intTab) {
-        String[] result = new String[intTab.length];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = String.valueOf(intTab[i]);
-        }
-        return result;
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-//        isRecording = false;
     }
 
     public void onClickOpenConnection(View view) {
@@ -258,28 +250,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickRecording(View view) {
-        log.i(TAG, "---onClickRecording");
+        log.v(TAG, "---onClickRecording");
         isRecording = !isRecording;
         updateRecordingBtn();
+        if (isRecording) {
+            log.i(TAG, "RECORDING START");
+        } else {
+            log.i(TAG, "RECORDING STOP");
+        }
     }
 
     public void onClickClearConsole(View view) {
         consoleView.clear();
-        log.i(TAG, "---onClickClearConsole");
+        log.v(TAG, "---onClickClearConsole");
     }
 
     public void onClickRawDataLog(View view) {
-        log.i(TAG, "---onClickRawDataShow");
+        log.v(TAG, "---onClickRawDataShow");
         isRawDataLogEnabled = !isRawDataLogEnabled;
         updateRawDataLogBtn();
     }
 
     public void onClickReset(View view) {
         consoleView.clear();
-        log.i(TAG, "---onClickReset");
+        log.v(TAG, "---onClickReset");
         dataListener.stopListening();
         recordedSensorData.clear();
         isRawDataLogEnabled = false;
+        isRecording = false;
         //count impacts
         minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT;
         impacts = 0;
@@ -334,15 +332,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void turnRedAndSetText(Button btn, @StringRes int stringRes) {
+        btn.setText(stringRes);
+        btn.setBackgroundColor(getColor(R.color.design_default_color_error));
+    }
+
     private void turnBackToDefaultColor(Button btn, @StringRes int stringRes) {
         btn.setText(stringRes);
         btn.setBackgroundColor(btnDefaultBackgroundColor);
 
-    }
-
-    private void turnRedAndSetText(Button btn, @StringRes int stringRes) {
-        btn.setText(stringRes);
-        btn.setBackgroundColor(getColor(R.color.design_default_color_error));
     }
 
     public void onClickSaveDataToCsv(View view) {
