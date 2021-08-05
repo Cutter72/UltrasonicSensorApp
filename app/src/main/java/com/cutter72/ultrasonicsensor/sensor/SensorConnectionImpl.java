@@ -6,7 +6,8 @@ import android.hardware.usb.UsbManager;
 
 import androidx.annotation.NonNull;
 
-import com.balsikandar.crashreporter.CrashReporter;
+import com.cutter72.ultrasonicsensor.android.ConsoleViewLogger;
+import com.cutter72.ultrasonicsensor.android.ConsoleViewLoggerImpl;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
@@ -16,6 +17,7 @@ import java.io.IOException;
 @SuppressWarnings("FieldCanBeLocal")
 public class SensorConnectionImpl implements SensorConnection {
     // RS-232 connection params
+    private final static String TAG = SensorConnectionImpl.class.getSimpleName();
     public final static int DEFAULT_BUFFER_TIME_OUT_MILLIS = 100;
     private final int DEFAULT_BUFFER_SIZE = 99;
     private final int DEFAULT_BAUD_RATE = 9600;
@@ -26,6 +28,7 @@ public class SensorConnectionImpl implements SensorConnection {
 
     // connection objects
     private final UsbManager usbManager;
+    private final ConsoleViewLogger log;
     private UsbSerialDriver sensorUsbDeviceDriver;
     private UsbDevice sensorUsbDevice;
     private UsbDeviceConnection sensorUsbDeviceConnection;
@@ -33,6 +36,7 @@ public class SensorConnectionImpl implements SensorConnection {
 
     public SensorConnectionImpl(UsbManager usbManager) {
         this.usbManager = usbManager;
+        this.log = ConsoleViewLoggerImpl.getInstance();
     }
 
     public UsbSerialPort getSensorUsbSerialPort() {
@@ -41,33 +45,33 @@ public class SensorConnectionImpl implements SensorConnection {
 
     @Override
     public boolean open() {
-        System.out.println("openConnectionToSensor");
+        log.i(TAG, "openConnectionToSensor");
         if (isOpen()) {
-            System.out.println("connectionToSensorAlreadyOpen");
+            log.i(TAG, "connectionToSensorAlreadyOpen");
             return true;
         } else {
             if (findSensor()) {
                 if (openSensorConnection()) {
                     if (openSensorPort()) {
-                        System.out.println("connectionOpen");
+                        log.i(TAG, "connectionOpen");
                         return true;
                     } else {
-                        System.out.println("cannotOpenPort");
+                        log.i(TAG, "cannotOpenPort");
                     }
                 } else {
-                    System.out.println("cannotConnectToUsbDevice");
+                    log.i(TAG, "cannotConnectToUsbDevice");
                 }
             } else {
-                System.out.println("sensorNotConnected");
+                log.i(TAG, "sensorNotConnected");
             }
         }
-        System.out.println("cannotOpenConnection");
+        log.i(TAG, "cannotOpenConnection");
         return false;
     }
 
     @Override
     public boolean isOpen() {
-        System.out.println("isSensorConnectionOpen");
+        log.i(TAG, "isSensorConnectionOpen");
         if (sensorUsbSerialPort != null) {
             return sensorUsbSerialPort.isOpen();
         }
@@ -75,18 +79,18 @@ public class SensorConnectionImpl implements SensorConnection {
     }
 
     private boolean findSensor() {
-        System.out.println("findSensor");
+        log.i(TAG, "findSensor");
         if (usbManager != null) {
             int i = 0;
             for (UsbSerialDriver availableDriver : UsbSerialProber.getDefaultProber().findAllDrivers(usbManager)) {
                 UsbDevice usbDevice = availableDriver.getDevice();
-                System.out.println("---device-found---" + i);
-                System.out.println("availableDriver device: " + availableDriver.getDevice());
-                System.out.println("availableDriver ports: " + availableDriver.getPorts());
-                System.out.println("------");
+                log.i(TAG, "---device-found---" + i);
+                log.i(TAG, "availableDriver device: " + availableDriver.getDevice());
+                log.i(TAG, "availableDriver ports: " + availableDriver.getPorts());
+                log.i(TAG, "------");
                 if (DEFAULT_MANUFACTURER_NAME.equals(usbDevice.getManufacturerName())
                         && DEFAULT_PRODUCT_NAME.equals(usbDevice.getProductName())) {
-                    System.out.println("SensorUsbDeviceFound");
+                    log.i(TAG, "SensorUsbDeviceFound");
                     sensorUsbDeviceDriver = availableDriver;
                     sensorUsbDevice = usbDevice;
                     return true;
@@ -94,51 +98,50 @@ public class SensorConnectionImpl implements SensorConnection {
                 i++;
             }
         } else {
-            System.out.println("manager == null");
+            log.i(TAG, "manager == null");
             return false;
         }
-        System.out.println("noSensorUsbDeviceFound");
+        log.i(TAG, "noSensorUsbDeviceFound");
         return false;
     }
 
     private boolean openSensorConnection() {
-        System.out.println("openSensorUsbDeviceConnection");
+        log.i(TAG, "openSensorUsbDeviceConnection");
         if (usbManager != null) {
             if (sensorUsbDevice != null) {
                 sensorUsbDeviceConnection = usbManager.openDevice(sensorUsbDevice);
-                System.out.println("USB DEVICE CONNECTION OPEN");
+                log.i(TAG, "USB DEVICE CONNECTION OPEN");
                 return true;
             } else {
-                System.out.println("sensorUsbDevice == null");
+                log.i(TAG, "sensorUsbDevice == null");
                 return false;
             }
         } else {
-            System.out.println("manager == null");
+            log.i(TAG, "manager == null");
             return false;
         }
     }
 
     private boolean openSensorPort() {
-        System.out.println("openSensorPort");
+        log.i(TAG, "openSensorPort");
         sensorUsbSerialPort = sensorUsbDeviceDriver.getPorts().get(0);
         if (sensorUsbSerialPort != null) {
             if (sensorUsbDeviceConnection != null) {
                 try {
                     sensorUsbSerialPort.open(sensorUsbDeviceConnection);
                     sensorUsbSerialPort.setParameters(DEFAULT_BAUD_RATE, DEFAULT_DATA_BITS, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-                    System.out.println("USB DEVICE PORT OPEN");
+                    log.i(TAG, "USB DEVICE PORT OPEN");
                     return true;
                 } catch (IOException e) {
-                    e.printStackTrace();
-                    CrashReporter.logException(e);
+                    log.logException(TAG, e);
                     return false;
                 }
             } else {
-                System.out.println("sensorUsbDeviceConnection == null");
+                log.i(TAG, "sensorUsbDeviceConnection == null");
                 return false;
             }
         } else {
-            System.out.println("sensorUsbDevicePort == null");
+            log.i(TAG, "sensorUsbDevicePort == null");
             return false;
         }
     }
@@ -152,20 +155,15 @@ public class SensorConnectionImpl implements SensorConnection {
     @NonNull
     @Override
     public byte[] readRawData(@NonNull byte[] buffer) {
-        System.out.println("readRawData");
+        log.i(TAG, "readRawData");
         if (isOpen()) {
             try {
                 sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
             } catch (IOException | NullPointerException e) {
-                e.printStackTrace();
-                CrashReporter.logException(e);
+                log.logException(TAG, e);
             }
         } else {
-            if (open()) {
-                readRawData(buffer);
-            } else {
-                System.out.println("noConnectionOpenCannotReadData");
-            }
+            log.i(TAG, "noConnectionOpenCannotReadData");
         }
         return buffer;
     }
@@ -175,16 +173,16 @@ public class SensorConnectionImpl implements SensorConnection {
         clearHardwareInputOutputBuffers();
         closeSerialPort();
         closeUsbDeviceConnection();
-        System.out.println("CONNECTION CLOSED");
+        log.i(TAG, "CONNECTION CLOSED");
     }
 
     private void closeSerialPort() {
         if (sensorUsbSerialPort != null) {
             try {
                 sensorUsbSerialPort.close();
+                sensorUsbSerialPort = null;
             } catch (IOException e) {
-                e.printStackTrace();
-                CrashReporter.logException(e);
+                log.logException(TAG, e);
             }
         }
     }
@@ -192,6 +190,7 @@ public class SensorConnectionImpl implements SensorConnection {
     private void closeUsbDeviceConnection() {
         if (sensorUsbDeviceConnection != null) {
             sensorUsbDeviceConnection.close();
+            sensorUsbDeviceConnection = null;
         }
     }
 
@@ -202,8 +201,7 @@ public class SensorConnectionImpl implements SensorConnection {
                 sensorUsbSerialPort.purgeHwBuffers(true, true);
                 return true;
             } catch (IOException | NullPointerException e) {
-                e.printStackTrace();
-                CrashReporter.logException(e);
+                log.logException(TAG, e);
             }
         }
         return false;

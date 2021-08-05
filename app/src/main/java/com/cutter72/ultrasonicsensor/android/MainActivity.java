@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeLogger() {
         consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
-        log = ConsoleViewLoggerImpl.initializeLogger(consoleView);
+        log = ConsoleViewLoggerImpl.initializeLogger(this, consoleView);
         log.i(TAG, "Console view created.");
     }
 

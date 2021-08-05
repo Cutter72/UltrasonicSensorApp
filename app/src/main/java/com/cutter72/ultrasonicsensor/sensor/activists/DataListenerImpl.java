@@ -6,7 +6,6 @@ import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -67,11 +66,6 @@ public class DataListenerImpl implements DataListener {
     @Override
     public void stopListening() {
         isListening = false;
-        try {
-            sensorConnection.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            CrashReporter.logException(e);
-        }
+        sensorConnection.close();
     }
 }
