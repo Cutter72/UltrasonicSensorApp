@@ -18,4 +18,5 @@
     <string name="min_diff">Min. DIff.</string>
     <string name="avg_measur">Avg. Measur.</string>
     <string name="min_time_interval">Min. interval between impacts [ms]</string>
+    <string name="console_cleared">CONSOLE CLEARED</string>
 </resources>

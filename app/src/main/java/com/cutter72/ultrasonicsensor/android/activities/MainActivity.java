@@ -413,6 +413,5 @@ public class MainActivity extends AppCompatActivity {
     public void onClickClearConsole(View view) {
         consoleView.clear();
         log.i(TAG, "---onClickClearConsole");
-        log.i(TAG, "CONSOLE CLEARED");
     }
 }
