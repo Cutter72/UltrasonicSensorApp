@@ -33,7 +33,6 @@ import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -49,9 +48,8 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isRecording = false;
     private ConsoleViewLogger log;
 
-    //RS232 connection
-    private SensorConnection sensorConnection;
-    private SensorDataCarrier sensorDataCarrier;
+    private SensorDataCarrier recordedSensorData;
+    private SensorDataCarrier filteredSensorData;
     private DataListener dataListener;
 
     //layout
@@ -61,18 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private int btnBackgroundColor;
 
     //read and filter data
-    private static final double MAX_MEASUREMENT_DEVIATION = 1.0; // in centimeters
-    private final int MEASUREMENTS_BUFFER_SIZE = 5;
-    private final int BUFFER_TIME_OUT = 100;
-    private final int BUFFER_SIZE = 99;
-    private byte[] readDataBuffer = new byte[BUFFER_SIZE];
     private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
-    private final List<Measurement> measurementsBuffer = new ArrayList<>();
-    private final List<Measurement> allNonZeroMeasurements = new ArrayList<>();
-    private final List<Measurement> allMeasurements = new ArrayList<>();
-    private final List<Measurement> filteredMeasurements = new ArrayList<>();
-    private final List<Measurement> filteredOutMeasurements = new ArrayList<>();
-    private final List<Measurement> zeroMeasurements = new ArrayList<>();
 
     // print data in the console view
     private final int MEASUREMENTS_IN_ONE_LINE = 18;
@@ -101,13 +88,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeFields() {
         initializeLogger();
-        sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
-        sensorDataCarrier = new SensorDataCarrierImpl();
+        //RS232 connection
+        SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
+        recordedSensorData = new SensorDataCarrierImpl();
         dataListener = new DataListenerImpl(sensorConnection, new DataCallback() {
             @Override
             public void onDataReceive(SensorDataCarrier data) {
                 if (isRecording) {
-                    sensorDataCarrier.addData(data);
+                    recordedSensorData.addData(data);
                 }
                 if (data.size() > 0) {
                     runOnUiThread(() -> printMeasurements(data));
@@ -276,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSaveDataToCsv(View view) {
-        if (allMeasurements.size() == 0) {
+        if (recordedSensorData.size() == 0) {
             log.i(TAG, "NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
         } else {
             requestPermissionsForWrite();
@@ -290,13 +278,13 @@ public class MainActivity extends AppCompatActivity {
         filesManager.prepareDirectory(directory.getAbsolutePath());
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
                 impacts,
-                allMeasurements.size(),
+                recordedSensorData.size(),
                 minTimeIntervalBetweenImpactMillis,
                 minDifference,
                 avgMeasurements));
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < allMeasurements.size(); i++) {
-            Measurement measurement = allMeasurements.get(i);
+        for (int i = 0; i < recordedSensorData.size(); i++) {
+            Measurement measurement = recordedSensorData.get(i);
             sb.append(i + 1);
             sb.append(",");
             sb.append(measurement.getTime().getTime());
@@ -345,13 +333,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isImpactFound() {
-        if (allNonZeroMeasurements.size() > avgMeasurements) {
+        if (recordedSensorData.size() > avgMeasurements) {
             double sum = 0;
-            for (int i = allNonZeroMeasurements.size() - avgMeasurements - 1; i < allNonZeroMeasurements.size() - 1; i++) {
-                sum += allNonZeroMeasurements.get(i).getDistanceCentimeters();
+            for (int i = recordedSensorData.size() - avgMeasurements - 1; i < recordedSensorData.size() - 1; i++) {
+                sum += recordedSensorData.get(i).getDistanceCentimeters();
             }
             double averageFromPreviousXMeasurements = sum / avgMeasurements;
-            double differenceToCheck = averageFromPreviousXMeasurements - allNonZeroMeasurements.get(allNonZeroMeasurements.size() - 1).getDistanceCentimeters();
+            double differenceToCheck = averageFromPreviousXMeasurements - recordedSensorData.get(recordedSensorData.size() - 1).getDistanceCentimeters();
             if (differenceToCheck > minDifference) {
                 long currentMillis = System.currentTimeMillis();
                 long timeDifference = currentMillis - previousImpactTimestamp;
@@ -370,17 +358,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateMeasurementCounterView() {
-        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(allNonZeroMeasurements.size()));
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(recordedSensorData.size()));
     }
 
     private void printLatest18MeasurementsAndUpdateCounter() {
         updateMeasurementCounterView();
         if (isRawDataLogEnabled) {
-            log.i(TAG, "allMeasurements.size(): " + allNonZeroMeasurements.size());
+            log.i(TAG, "allMeasurements.size(): " + recordedSensorData.size());
         }
         log.i(TAG, "");
-        for (int i = allNonZeroMeasurements.size() - MEASUREMENTS_IN_ONE_LINE; i < allNonZeroMeasurements.size(); i++) {
-            consoleView.print(allNonZeroMeasurements.get(i).getDistanceCentimeters() + ", ");
+        for (int i = recordedSensorData.size() - MEASUREMENTS_IN_ONE_LINE; i < recordedSensorData.size(); i++) {
+            consoleView.print(recordedSensorData.get(i).getDistanceCentimeters() + ", ");
         }
     }
 
@@ -394,7 +382,7 @@ public class MainActivity extends AppCompatActivity {
         consoleView.clear();
         log.i(TAG, "---onClickReset");
         dataListener.stopListening();
-        allNonZeroMeasurements.clear();
+        recordedSensorData.clear();
         rawSensorUnitsBuffer.clear();
         isRawDataLogEnabled = false;
         //count impacts
@@ -408,7 +396,7 @@ public class MainActivity extends AppCompatActivity {
         updateMinDiffPickerView();
         updateImpactsCounterView();
         updateMeasurementCounterView();
-        updateRecordingButtonView();
+        updateRecordingBtn();
         updateRawDataLogBtn();
         log.i(TAG, "DATA CLEARED");
     }
@@ -426,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateRecordingButtonView() {
+    private void updateRecordingBtn() {
         Button btnRecording = findViewById(R.id.btnRecording);
         if (isRecording) {
             btnRecording.setText(R.string.stop_recording);
@@ -439,7 +427,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickRecording(View view) {
         log.i(TAG, "---onClickRecording");
-        //todo impl
+        isRecording = !isRecording;
+        updateRecordingBtn();
     }
 
     public void onClickClearConsole(View view) {

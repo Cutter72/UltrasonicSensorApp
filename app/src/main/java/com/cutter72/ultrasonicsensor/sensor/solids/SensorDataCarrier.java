@@ -19,4 +19,8 @@ public interface SensorDataCarrier {
     List<Measurement> getLastMeasurements(int howMany);
 
     int size();
+
+    Measurement get(int index);
+
+    void clear();
 }

@@ -62,7 +62,7 @@ public class SensorDataCarrierImpl implements SensorDataCarrier {
     @NonNull
     @Override
     public List<Measurement> getLastMeasurements(int howMany) {
-        int size = this.rawMeasurements.size();
+        int size = size();
         if (size > howMany) {
             return this.rawMeasurements.subList(size - howMany, size);
         } else {
@@ -73,5 +73,16 @@ public class SensorDataCarrierImpl implements SensorDataCarrier {
     @Override
     public int size() {
         return this.rawMeasurements.size();
+    }
+
+    @Override
+    public Measurement get(int index) {
+        return this.rawMeasurements.get(index);
+    }
+
+    @Override
+    public void clear() {
+        rawData.clear();
+        rawMeasurements.clear();
     }
 }
