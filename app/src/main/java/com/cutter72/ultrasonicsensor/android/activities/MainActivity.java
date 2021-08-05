@@ -13,6 +13,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -50,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
 
     //layout
     private ConsoleView consoleView;
-    private int btnBackgroundColor;
+    private int btnDefaultBackgroundColor;
 
     private DataListener dataListener;
     private SensorDataCarrier recordedSensorData;
@@ -108,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
     private void initializeRecordingBtn() {
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
-        btnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+        btnDefaultBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
     }
 
     private void initializeSensorDataListener() {
@@ -297,11 +298,9 @@ public class MainActivity extends AppCompatActivity {
     private void updateConnectionButtonView() {
         Button btnOpenConnection = findViewById(R.id.openConnection);
         if (dataListener.isListening()) {
-            btnOpenConnection.setText(R.string.close_connection);
-            btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
+            turnRedAndSetText(btnOpenConnection, R.string.close_connection);
         } else {
-            btnOpenConnection.setText(R.string.open_connection);
-            btnOpenConnection.setBackgroundColor(btnBackgroundColor);
+            turnBackToDefaultColor(btnOpenConnection, R.string.open_connection);
         }
     }
 
@@ -322,19 +321,28 @@ public class MainActivity extends AppCompatActivity {
         } else {
             log.i(TAG, "RAW DATA SHOW DISABLED");
             btnRawDataLog.setText(R.string.show_raw_data);
-            btnRawDataLog.setBackgroundColor(btnBackgroundColor);
+            btnRawDataLog.setBackgroundColor(btnDefaultBackgroundColor);
         }
     }
 
     private void updateRecordingBtn() {
         Button btnRecording = findViewById(R.id.btnRecording);
         if (isRecording) {
-            btnRecording.setText(R.string.stop_recording);
-            btnRecording.setBackgroundColor(getColor(R.color.design_default_color_error));
+            turnRedAndSetText(btnRecording, R.string.stop_recording);
         } else {
-            btnRecording.setText(R.string.start_recording);
-            btnRecording.setBackgroundColor(btnBackgroundColor);
+            turnBackToDefaultColor(btnRecording, R.string.start_recording);
         }
+    }
+
+    private void turnBackToDefaultColor(Button btn, @StringRes int stringRes) {
+        btn.setText(stringRes);
+        btn.setBackgroundColor(btnDefaultBackgroundColor);
+
+    }
+
+    private void turnRedAndSetText(Button btn, @StringRes int stringRes) {
+        btn.setText(stringRes);
+        btn.setBackgroundColor(getColor(R.color.design_default_color_error));
     }
 
     public void onClickSaveDataToCsv(View view) {
