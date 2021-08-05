@@ -245,10 +245,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickOpenConnection(View view) {
-        log.i(TAG, "---onClickOpenConnection");
         if (dataListener.isListening()) {
+            log.i(TAG, "---onClickCloseConnection");
             dataListener.stopListening();
         } else {
+            log.i(TAG, "---onClickOpenConnection");
             dataListener.startListening();
         }
         updateConnectionButtonView();

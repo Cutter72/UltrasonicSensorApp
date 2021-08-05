@@ -10,8 +10,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.cutter72.ultrasonicsensor.R;
-
 import java.util.Locale;
 
 @SuppressWarnings({"FieldCanBeLocal", "Convert2Lambda"})
@@ -77,6 +75,6 @@ public class ConsoleViewImpl implements ConsoleView {
 
     @Override
     public void clear() {
-        consoleLineView.setText(R.string.console_cleared);
+        consoleLineView.setText("CONSOLE CLEARED\n");
     }
 }
