@@ -26,6 +26,7 @@ import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataCallback;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataFilterImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
@@ -34,36 +35,25 @@ import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
 
 import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNAL_COUNTER_RESET_VALUE;
 
 @SuppressWarnings({"Convert2Lambda"})
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value in centimeters from ToughSonic Sensor 12 data sheet
-    public static MainActivity instance;
-    public static boolean isRecording = false;
     private ConsoleViewLogger log;
-
-    private SensorDataCarrier recordedSensorData;
-    private SensorDataCarrier filteredSensorData;
-    private DataListener dataListener;
+    private boolean isRecording = false;
+    private boolean isRawDataLogEnabled = false;
 
     //layout
     private final int SEEKBAR_MAX_VALUE = 19;
-    //todo make consol view with a global access from all classes
     private ConsoleView consoleView;
     private int btnBackgroundColor;
 
-    //read and filter data
-    private List<Integer> rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
+    private DataListener dataListener;
+    private SensorDataCarrier recordedSensorData;
+    private SensorDataCarrier filteredSensorData;
 
-    // print data in the console view
-    private final int MEASUREMENTS_IN_ONE_LINE = 18;
-    private boolean isRawDataLogEnabled = false;
 
     //count impacts
     private final double MIN_DIFFERENCE_DEFAULT = 0.4;
@@ -77,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
     private int minTimeIntervalBetweenImpactMillis; //50ms => 20 impacts / second
     private int impacts;
     private long previousImpactTimestamp;
+    private double filterDeviation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,14 +79,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeFields() {
         initializeLogger();
-        //RS232 connection
         SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
+        filterDeviation = DataFilterImpl.DEFAULT_FILTER_DEVIATION;
         recordedSensorData = new SensorDataCarrierImpl();
+        filteredSensorData = new SensorDataCarrierImpl();
         dataListener = new DataListenerImpl(sensorConnection, new DataCallback() {
             @Override
             public void onDataReceive(SensorDataCarrier data) {
                 if (isRecording) {
                     recordedSensorData.addData(data);
+                    filteredSensorData.addData(new DataFilterImpl().filterByMedian(data, filterDeviation));
                 }
                 if (data.size() > 0) {
                     runOnUiThread(() -> printMeasurements(data));
@@ -105,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         isRawDataLogEnabled = false;
-        rawSensorUnitsBuffer = Collections.synchronizedList(new LinkedList<>());
         previousImpactTimestamp = 0;
         minDifference = MIN_DIFFERENCE_DEFAULT;
         avgMeasurements = AVG_MEASUREMENTS_DEFAULT;
@@ -127,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeLayout() {
-        instance = this;
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
         btnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
@@ -361,17 +352,6 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(recordedSensorData.size()));
     }
 
-    private void printLatest18MeasurementsAndUpdateCounter() {
-        updateMeasurementCounterView();
-        if (isRawDataLogEnabled) {
-            log.i(TAG, "allMeasurements.size(): " + recordedSensorData.size());
-        }
-        log.i(TAG, "");
-        for (int i = recordedSensorData.size() - MEASUREMENTS_IN_ONE_LINE; i < recordedSensorData.size(); i++) {
-            consoleView.print(recordedSensorData.get(i).getDistanceCentimeters() + ", ");
-        }
-    }
-
     public void onClickRawDataLog(View view) {
         log.i(TAG, "---onClickRawDataShow");
         isRawDataLogEnabled = !isRawDataLogEnabled;
@@ -383,7 +363,6 @@ public class MainActivity extends AppCompatActivity {
         log.i(TAG, "---onClickReset");
         dataListener.stopListening();
         recordedSensorData.clear();
-        rawSensorUnitsBuffer.clear();
         isRawDataLogEnabled = false;
         //count impacts
         minDifference = 0.4;

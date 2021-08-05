@@ -1,7 +1,9 @@
 package com.cutter72.ultrasonicsensor;
 
-import com.cutter72.ultrasonicsensor.sensor.activists.MeasurementsManagerImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataFilterImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -13,15 +15,13 @@ import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
-public class MeasurementsManagerImplTest {
-    private MeasurementsManagerImpl measurements;
+public class DataFilterTest {
     private final int MEASUREMENTS_QUANTITY = 100;
     private List<Measurement> inputMeasurements;
 
     @Before
     public void setUp() {
         //GIVEN
-        measurements = new MeasurementsManagerImpl();
         inputMeasurements = new ArrayList<>();
         int badMeasurements = 0;
         Random random = new Random();
@@ -46,10 +46,10 @@ public class MeasurementsManagerImplTest {
     @Test
     public void filterByMedian() {
         //GIVEN
-        List<Measurement> measurementsToFilter = new ArrayList<>(inputMeasurements);
+        SensorDataCarrier dataToFilter = new SensorDataCarrierImpl().setRawMeasurements(new ArrayList<>(inputMeasurements));
         //WHEN
-        measurements.filterByMedian(measurementsToFilter, 0.4);
+        SensorDataCarrier filteredData = new DataFilterImpl().filterByMedian(dataToFilter, 0.4);
         //THEN
-        assertEquals(MEASUREMENTS_QUANTITY, measurementsToFilter.size());
+        assertEquals(MEASUREMENTS_QUANTITY, filteredData.size());
     }
 }

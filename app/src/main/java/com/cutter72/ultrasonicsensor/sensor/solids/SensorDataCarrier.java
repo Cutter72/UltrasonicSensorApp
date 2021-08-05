@@ -23,4 +23,10 @@ public interface SensorDataCarrier {
     Measurement get(int index);
 
     void clear();
+
+    SensorDataCarrier setRawData(List<byte[]> rawMeasurements);
+
+    SensorDataCarrier setRawData(byte[] rawData);
+
+    SensorDataCarrier setRawMeasurements(List<Measurement> measurements);
 }

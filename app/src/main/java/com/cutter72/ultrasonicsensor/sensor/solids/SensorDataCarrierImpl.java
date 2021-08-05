@@ -85,4 +85,24 @@ public class SensorDataCarrierImpl implements SensorDataCarrier {
         rawData.clear();
         rawMeasurements.clear();
     }
+
+    @Override
+    public SensorDataCarrier setRawData(List<byte[]> rawData) {
+        this.rawData.clear();
+        return this;
+    }
+
+    @Override
+    public SensorDataCarrier setRawData(byte[] rawData) {
+        this.rawData.clear();
+        this.rawData.add(rawData);
+        return this;
+    }
+
+    @Override
+    public SensorDataCarrier setRawMeasurements(List<Measurement> measurementsToAdd) {
+        this.rawMeasurements.clear();
+        this.rawMeasurements.addAll(measurementsToAdd);
+        return this;
+    }
 }
