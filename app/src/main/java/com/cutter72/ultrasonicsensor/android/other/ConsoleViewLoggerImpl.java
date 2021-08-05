@@ -11,9 +11,9 @@ import com.balsikandar.crashreporter.CrashReporter;
 public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
     private static ConsoleViewLogger instance;
     private Activity activity;
-    private ConsoleViewImpl consoleView;
+    private ConsoleView consoleView;
 
-    public ConsoleViewLoggerImpl(Activity activity, ConsoleViewImpl consoleView) {
+    public ConsoleViewLoggerImpl(@NonNull Activity activity, @NonNull ConsoleView consoleView) {
         this.activity = activity;
         this.consoleView = consoleView;
     }
@@ -26,7 +26,7 @@ public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
         return instance;
     }
 
-    public static synchronized ConsoleViewLogger initializeLogger(@NonNull Activity activity, @NonNull ConsoleViewImpl consoleView) {
+    public static synchronized ConsoleViewLogger initializeLogger(@NonNull Activity activity, @NonNull ConsoleView consoleView) {
         if (instance == null) {
             instance = new ConsoleViewLoggerImpl(activity, consoleView);
         }

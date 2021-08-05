@@ -11,4 +11,6 @@ public interface ConsoleView {
     void println(@Nullable Object object);
 
     void printf(@NonNull String s, Object... args);
+
+    void clear();
 }

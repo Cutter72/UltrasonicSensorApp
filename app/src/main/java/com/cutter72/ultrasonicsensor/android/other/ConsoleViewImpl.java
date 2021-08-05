@@ -83,6 +83,7 @@ public class ConsoleViewImpl implements ConsoleView {
         }
     }
 
+    @Override
     public void clear() {
         linearLayout.removeAllViews();
         previousLine = null;

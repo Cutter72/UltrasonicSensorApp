@@ -3,7 +3,6 @@ package com.cutter72.ultrasonicsensor.android.activities;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
-import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.Environment;
@@ -18,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import com.cutter72.ultrasonicsensor.R;
+import com.cutter72.ultrasonicsensor.android.other.ConsoleView;
 import com.cutter72.ultrasonicsensor.android.other.ConsoleViewImpl;
 import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLogger;
 import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLoggerImpl;
@@ -31,8 +31,6 @@ import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
-import com.hoho.android.usbserial.driver.UsbSerialDriver;
-import com.hoho.android.usbserial.driver.UsbSerialPort;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -55,19 +53,11 @@ public class MainActivity extends AppCompatActivity {
     private SensorConnection sensorConnection;
     private SensorDataCarrier sensorDataCarrier;
     private DataListener dataListener;
-    //todo create SensorDataRecorder
-    //todo add logger
-    public static boolean isOpened = false;
-    private List<UsbSerialDriver> availableDrivers;
-    private UsbManager manager;
-    private UsbSerialDriver driver;
-    private UsbDeviceConnection connection;
-    private UsbSerialPort port;
 
     //layout
     private final int SEEKBAR_MAX_VALUE = 19;
     //todo make consol view with a global access from all classes
-    private ConsoleViewImpl consoleView;
+    private ConsoleView consoleView;
     private int btnBackgroundColor;
 
     //read and filter data
