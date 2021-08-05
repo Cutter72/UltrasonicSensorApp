@@ -45,9 +45,11 @@ import java.util.List;
 
 @SuppressWarnings({"Convert2Lambda"})
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = MainActivity.class.getSimpleName();
     private static final double CENTIMETERS_UNIT_FACTOR = 0.00859536; //value in centimeters from ToughSonic Sensor 12 data sheet
     public static MainActivity instance;
     public static boolean isRecording = false;
+    private LogWrapper log;
 
     //RS232 connection
     private SensorConnection sensorConnection;
@@ -65,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
     //layout
     private final int SEEKBAR_MAX_VALUE = 19;
     //todo make consol view with a global access from all classes
-    private ConsoleView consoleView;
+    private ConsoleViewImpl consoleView;
     private int btnBackgroundColor;
 
     //read and filter data
@@ -108,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeFields() {
+        initializeLogger();
         sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
         dataStorage = new DataStorageImpl();
         dataListener = new DataListenerImpl(sensorConnection, new DataCallback<byte[]>() {
@@ -120,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
                     measurementsChunk = new DataDecoderImpl().decodeDataFromSensor(bytes);
                 }
                 runOnUiThread(() ->
-                        consoleView.println(Arrays.toString(measurementsChunk.toArray()))
+                        log.i(TAG, Arrays.toString(measurementsChunk.toArray()))
                 );
             }
         });
@@ -135,7 +138,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeLayout() {
         instance = this;
-        initializeConsoleView();
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
         btnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
@@ -144,9 +146,10 @@ public class MainActivity extends AppCompatActivity {
         initializeNumberPickers();
     }
 
-    private void initializeConsoleView() {
-        consoleView = new ConsoleView(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
-        consoleView.println("Console view created.");
+    private void initializeLogger() {
+        consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
+        log = LogWrapper.initializeLogger(consoleView);
+        log.i(TAG, "Console view created.");
     }
 
     private void initializeSeekBar() {
@@ -261,25 +264,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickOpenConnection(View view) {
-        consoleView.println("---onClickOpenConnection");
+        log.i(TAG, "---onClickOpenConnection");
         if (sensorConnection.isOpen()) {
             closeConnection();
         } else {
             dataListener.startListening();
         }
 //        if (isOpened) {
-//            consoleView.println("---onClickCloseConnection");
+//            log.i(TAG, "---onClickCloseConnection");
 //            isRecording = false;
 //            closeConnection();
 //        } else {
-//            consoleView.println("---onClickOpenConnection");
+//            log.i(TAG, "---onClickOpenConnection");
 //            mik3yConnection();
 //        }
     }
 
     public void onClickSaveDataToCsv(View view) {
         if (allMeasurements.size() == 0) {
-            consoleView.println("NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
+            log.i(TAG, "NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
         } else {
             requestPermissionsForWrite();
         }
@@ -307,7 +310,7 @@ public class MainActivity extends AppCompatActivity {
             sb.append("\n");
         }
         filesManager.writeToFile(outputFile, sb.toString());
-        consoleView.println(String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
+        log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
     }
 
     private static final int PERMISSION_ID = 1029;
@@ -342,11 +345,11 @@ public class MainActivity extends AppCompatActivity {
                 openConnectionToTheFirstAvailableDriver();
                 openPort();
             } else {
-                consoleView.println("noDriversFound");
+                log.i(TAG, "noDriversFound");
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            consoleView.println(ex.toString());
+            log.i(TAG, ex.toString());
         }
     }
 
@@ -355,13 +358,11 @@ public class MainActivity extends AppCompatActivity {
         try {
             port.open(connection);
             port.setParameters(9600, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-            consoleView.println("PORT OPEN");
+            log.i(TAG, "PORT OPEN");
             isOpened = true;
             updateConnectionButtonView();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-//                    CrashReporter.logException(ex);
-            consoleView.println(ex);
+        } catch (IOException e) {
+            log.logException(TAG, e);
         }
     }
 
@@ -378,15 +379,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void openConnectionToTheFirstAvailableDriver() {
         // Open a connection to the first available driver.
-        consoleView.println("openConnectionToTheFirstAvailableDriver");
+        log.i(TAG, "openConnectionToTheFirstAvailableDriver");
         driver = availableDrivers.get(0);
         connection = manager.openDevice(driver.getDevice());
         if (connection == null) {
             // add UsbManager.requestPermission(driver.getDevice(), ..) handling here
-            consoleView.println("connection == null");
+            log.i(TAG, "connection == null");
             return;
         }
-        consoleView.println("CONNECTION OPEN");
+        log.i(TAG, "CONNECTION OPEN");
     }
 
     private void closeConnection() {
@@ -403,23 +404,23 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //            connection.close();
 //        }
-        consoleView.println("CONNECTION CLOSED");
+        log.i(TAG, "CONNECTION CLOSED");
     }
 
     private void findAllAvailableDriversFromAttachedDevices() {
         // Find all available drivers from attached devices.
-        consoleView.println("findAllAvailableDriversFromAttachedDevices");
+        log.i(TAG, "findAllAvailableDriversFromAttachedDevices");
         manager = (UsbManager) getSystemService(Context.USB_SERVICE);
         availableDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(manager);
         if (availableDrivers.isEmpty()) {
-            consoleView.println("availableDrivers.isEmpty");
+            log.i(TAG, "availableDrivers.isEmpty");
         } else {
             for (int i = 0; i < availableDrivers.size(); i++) {
                 UsbSerialDriver availableDriver = availableDrivers.get(i);
-                consoleView.println("---device---" + i);
-                consoleView.println("availableDriver device: " + availableDriver.getDevice());
-                consoleView.println("availableDriver ports: " + availableDriver.getPorts());
-                consoleView.println("------");
+                log.i(TAG, "---device---" + i);
+                log.i(TAG, "availableDriver device: " + availableDriver.getDevice());
+                log.i(TAG, "availableDriver ports: " + availableDriver.getPorts());
+                log.i(TAG, "------");
             }
         }
     }
@@ -433,7 +434,7 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            consoleView.println(Arrays.toString(readDataBuffer));
+                            log.i(TAG, Arrays.toString(readDataBuffer));
                         }
                     });
                 }
@@ -578,23 +579,23 @@ public class MainActivity extends AppCompatActivity {
     private void printLatest18MeasurementsAndUpdateCounter() {
         updateMeasurementCounterView();
         if (isRawDataLogEnabled) {
-            consoleView.println("allMeasurements.size(): " + allNonZeroMeasurements.size());
+            log.i(TAG, "allMeasurements.size(): " + allNonZeroMeasurements.size());
         }
-        consoleView.println();
+        log.i(TAG, "");
         for (int i = allNonZeroMeasurements.size() - MEASUREMENTS_IN_ONE_LINE; i < allNonZeroMeasurements.size(); i++) {
             consoleView.print(allNonZeroMeasurements.get(i).getDistanceCentimeters() + ", ");
         }
     }
 
     public void onClickRawDataLog(View view) {
-        consoleView.println("---onClickRawDataShow");
+        log.i(TAG, "---onClickRawDataShow");
         isRawDataLogEnabled = !isRawDataLogEnabled;
         updateRawDataLogView();
     }
 
     public void onClickReset(View view) {
         consoleView.clear();
-        consoleView.println("---onClickReset");
+        log.i(TAG, "---onClickReset");
         closeConnection();
         allNonZeroMeasurements.clear();
         rawSensorUnitsBuffer.clear();
@@ -612,17 +613,17 @@ public class MainActivity extends AppCompatActivity {
         updateMeasurementCounterView();
         updateRecordingButtonView();
         updateRawDataLogView();
-        consoleView.println("DATA CLEARED");
+        log.i(TAG, "DATA CLEARED");
     }
 
     private void updateRawDataLogView() {
         Button btnRawDataLog = findViewById(R.id.btnRawDataLog);
         if (isRawDataLogEnabled) {
-            consoleView.println("RAW DATA SHOW ENABLED");
+            log.i(TAG, "RAW DATA SHOW ENABLED");
             btnRawDataLog.setText(R.string.hide_raw_data);
             btnRawDataLog.setBackgroundColor(getColor(R.color.design_default_color_error));
         } else {
-            consoleView.println("RAW DATA SHOW DISABLED");
+            log.i(TAG, "RAW DATA SHOW DISABLED");
             btnRawDataLog.setText(R.string.show_raw_data);
             btnRawDataLog.setBackgroundColor(btnBackgroundColor);
         }
@@ -640,21 +641,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickRecording(View view) {
-        consoleView.println("---onClickRecording");
+        log.i(TAG, "---onClickRecording");
 //        if (port != null) {
 //            try {
 //                port.purgeHwBuffers(true, true);
 //            } catch (IOException | NullPointerException ex) {
 //                ex.printStackTrace();
-//                consoleView.println(ex);
+//                log.i(TAG, ex);
 //            }
 //        }
 //        if (isOpened) {
 //            if (isRecording) {
-//                consoleView.println("STOP RECORDING");
+//                log.i(TAG, "STOP RECORDING");
 //                isRecording = false;
 //            } else {
-//                consoleView.println("START RECORDING");
+//                log.i(TAG, "START RECORDING");
 //                isRecording = true;
 //                Runnable delayedRunnable = new Runnable() {
 //                    @Override
@@ -668,7 +669,7 @@ public class MainActivity extends AppCompatActivity {
 //                                public void run() {
 //                                    if (consoleView.getSize() > CONSOLE_LINES_LIMIT) {
 //                                        consoleView.clear();
-//                                        consoleView.println("CONSOLE CLEARED");
+//                                        log.i(TAG, "CONSOLE CLEARED");
 //                                    }
 //                                }
 //                            });
@@ -684,7 +685,7 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //            updateRecordingButtonView();
 //        } else {
-//            consoleView.println("CONNECTION IS NOT OPEN");
+//            log.i(TAG, "CONNECTION IS NOT OPEN");
 //        }
     }
 
@@ -698,7 +699,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickClearConsole(View view) {
         consoleView.clear();
-        consoleView.println("---onClickClearConsole");
-        consoleView.println("CONSOLE CLEARED");
+        log.i(TAG, "---onClickClearConsole");
+        log.i(TAG, "CONSOLE CLEARED");
     }
 }
