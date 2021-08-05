@@ -35,18 +35,20 @@ import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Locale;
 
 import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNAL_COUNTER_RESET_VALUE;
 
 @SuppressWarnings({"Convert2Lambda"})
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int DEFAULT_FILTER_PICKER_INDEX = 5;
+    private static final int DEFAULT_MIN_DIFF_PICKER_INDEX = 5;
     private ConsoleViewLogger log;
     private boolean isRecording = false;
     private boolean isRawDataLogEnabled = false;
 
     //layout
-    private final int SEEKBAR_MAX_VALUE = 19;
     private ConsoleView consoleView;
     private int btnBackgroundColor;
 
@@ -56,53 +58,23 @@ public class MainActivity extends AppCompatActivity {
 
 
     //count impacts
-    private final double MIN_DIFFERENCE_DEFAULT = 0.4;
-    private final int AVG_MEASUREMENTS_DEFAULT = 4;
-    private final int MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT = 1000;
+    private final int MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT = 100;
     private final int IMPACTS_DEFAULT = 0;
-    private final double[] minDiffValues = new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-    private final int[] avgMeasurementsValues = new int[]{3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-    private double minDifference;
-    private int avgMeasurements;
+    private final double[] minDiffValues =
+            new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
+    private final double[] filterValues =
+            new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
+    private int minDifferencePickerIndex;
+    private int filterValuePickerIndex;
     private int minTimeIntervalBetweenImpactMillis; //50ms => 20 impacts / second
     private int impacts;
     private long previousImpactTimestamp;
-    private double filterDeviation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initializeFields();
         initializeLayout();
-    }
-
-    private void initializeFields() {
-        initializeLogger();
-        SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
-        filterDeviation = DataFilterImpl.DEFAULT_FILTER_DEVIATION;
-        recordedSensorData = new SensorDataCarrierImpl();
-        filteredSensorData = new SensorDataCarrierImpl();
-        dataListener = new DataListenerImpl(sensorConnection, new DataCallback() {
-            @Override
-            public void onDataReceive(SensorDataCarrier data) {
-                if (isRecording) {
-                    recordedSensorData.addData(data);
-                    filteredSensorData.addData(new DataFilterImpl().filterByMedian(data, filterDeviation));
-                }
-                if (data.size() > 0) {
-                    runOnUiThread(() -> printMeasurements(data));
-                } else {
-                    printNoSignalInfo();
-                }
-            }
-        });
-        isRawDataLogEnabled = false;
-        previousImpactTimestamp = 0;
-        minDifference = MIN_DIFFERENCE_DEFAULT;
-        avgMeasurements = AVG_MEASUREMENTS_DEFAULT;
-        minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT; //50ms => 20 impacts / second
-        impacts = IMPACTS_DEFAULT;
     }
 
     private void printMeasurements(SensorDataCarrier data) {
@@ -119,12 +91,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeLayout() {
+        recordedSensorData = new SensorDataCarrierImpl();
+        filteredSensorData = new SensorDataCarrierImpl();
+        isRawDataLogEnabled = false;
+        previousImpactTimestamp = 0;
+        minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT; //50ms => 20 impacts / second
+        impacts = IMPACTS_DEFAULT;
+        initializeLogger();
+        initializeSeekBar();
+        initializeNumberPickers();
+        initializeSensorDataListener();
+        initializeRecordingBtn();
+        updateIntervalSeekBarLabel();
+    }
+
+    private void initializeRecordingBtn() {
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
         btnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
-        updateIntervalValueTextView();
-        initializeSeekBar();
-        initializeNumberPickers();
+    }
+
+    private void initializeSensorDataListener() {
+        SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
+        dataListener = new DataListenerImpl(sensorConnection, new DataCallback() {
+            @Override
+            public void onDataReceive(SensorDataCarrier data) {
+                if (isRecording) {
+                    recordedSensorData.addData(data);
+                    SensorDataCarrier filteredData = new DataFilterImpl()
+                            .filterByMedian(data, filterValues[filterValuePickerIndex]);
+                    filteredSensorData.addData(filteredData);
+                }
+                if (data.size() > 0) {
+                    runOnUiThread(() -> printMeasurements(data));
+                } else {
+                    printNoSignalInfo();
+                }
+            }
+        });
     }
 
     private void initializeLogger() {
@@ -135,12 +139,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeSeekBar() {
         SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
-        minTimeIntervalSeekBar.setMax(SEEKBAR_MAX_VALUE);
         updateIntervalSeekBarView();
         minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(seekBar.getProgress() * 50 + 50));
+                ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(convertToMillis(seekBar)));
             }
 
             @Override
@@ -149,77 +152,75 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                minTimeIntervalBetweenImpactMillis = seekBar.getProgress() * 50 + 50;
-                updateIntervalValueTextView();
+                minTimeIntervalBetweenImpactMillis = convertToMillis(seekBar);
+                updateIntervalSeekBarLabel();
             }
         });
     }
 
+    private int convertToMillis(SeekBar seekBar) {
+        return seekBar.getProgress() * 50 + 50;
+    }
+
     private void initializeNumberPickers() {
+        filterValuePickerIndex = DEFAULT_FILTER_PICKER_INDEX;
+        minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
         NumberPicker minDifferencePicker = findViewById(R.id.minDifferencePicker);
         minDifferencePicker.setMinValue(0);
         minDifferencePicker.setMaxValue(minDiffValues.length - 1);
         minDifferencePicker.setDisplayedValues(transformToStringArray(minDiffValues));
-        updateMinDiffPickerView();
+        updateMinDiffValuePickerView();
         minDifferencePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             @Override
             public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
                 setMinDiffValue(newVal);
             }
         });
-        NumberPicker avgMeasurementsPicker = findViewById(R.id.avgMeasurementsPicker);
-        avgMeasurementsPicker.setMinValue(0);
-        avgMeasurementsPicker.setMaxValue(avgMeasurementsValues.length - 1);
-        avgMeasurementsPicker.setDisplayedValues(transformToStringArray(avgMeasurementsValues));
-        updateAvgPickerView();
-        avgMeasurementsPicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
+        NumberPicker filterValuePicker = findViewById(R.id.avgMeasurementsPicker);
+        filterValuePicker.setMinValue(0);
+        filterValuePicker.setMaxValue(filterValues.length - 1);
+        filterValuePicker.setDisplayedValues(transformToStringArray(filterValues));
+        updateFilterValuePickerView();
+        filterValuePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
             @Override
             public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
-                setAvgMeasurementsValues(newVal);
+                setFilterValue(newVal);
             }
         });
     }
 
-    private void updateIntervalValueTextView() {
+    private void updateIntervalSeekBarLabel() {
         ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
     }
 
     private void updateIntervalSeekBarView() {
-        ((SeekBar) findViewById(R.id.minTimeIntervalSeekBar)).setProgress((minTimeIntervalBetweenImpactMillis - 50) / 50);
+        ((SeekBar) findViewById(R.id.minTimeIntervalSeekBar)).setProgress(convertToSeekBarProgressValue());
     }
 
-    private void updateMinDiffPickerView() {
-        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(getMinDiffPickerValue());
+    private int convertToSeekBarProgressValue() {
+        return (minTimeIntervalBetweenImpactMillis - 50) / 50;
     }
 
-    private void updateAvgPickerView() {
-        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(getAvgPickerValue());
+    private void updateMinDiffValuePickerView() {
+        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(minDifferencePickerIndex);
     }
 
-    private int getMinDiffPickerValue() {
-        for (int i = 0; i < minDiffValues.length; i++) {
-            if (minDiffValues[i] == minDifference) {
-                return i;
-            }
+    private void updateFilterValuePickerView() {
+        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(filterValuePickerIndex);
+    }
+
+    private void setMinDiffValue(int newIndex) {
+        minDifferencePickerIndex = newIndex;
+        if (filterValuePickerIndex > newIndex) {
+            filterValuePickerIndex = newIndex;
         }
-        return 0;
     }
 
-    private int getAvgPickerValue() {
-        for (int i = 0; i < avgMeasurementsValues.length; i++) {
-            if (avgMeasurementsValues[i] == avgMeasurements) {
-                return i;
-            }
+    private void setFilterValue(int newIndex) {
+        filterValuePickerIndex = newIndex;
+        if (minDifferencePickerIndex > newIndex) {
+            minDifferencePickerIndex = newIndex;
         }
-        return 0;
-    }
-
-    private void setMinDiffValue(int newVal) {
-        minDifference = minDiffValues[newVal];
-    }
-
-    private void setAvgMeasurementsValues(int newVal) {
-        avgMeasurements = avgMeasurementsValues[newVal];
     }
 
     private String[] transformToStringArray(double[] doubleTab) {
@@ -255,6 +256,87 @@ public class MainActivity extends AppCompatActivity {
         updateConnectionButtonView();
     }
 
+    public void onClickRecording(View view) {
+        log.i(TAG, "---onClickRecording");
+        isRecording = !isRecording;
+        updateRecordingBtn();
+    }
+
+    public void onClickClearConsole(View view) {
+        consoleView.clear();
+        log.i(TAG, "---onClickClearConsole");
+    }
+
+    public void onClickRawDataLog(View view) {
+        log.i(TAG, "---onClickRawDataShow");
+        isRawDataLogEnabled = !isRawDataLogEnabled;
+        updateRawDataLogBtn();
+    }
+
+    public void onClickReset(View view) {
+        consoleView.clear();
+        log.i(TAG, "---onClickReset");
+        dataListener.stopListening();
+        recordedSensorData.clear();
+        isRawDataLogEnabled = false;
+        //count impacts
+        minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT;
+        impacts = 0;
+        previousImpactTimestamp = 0;
+        Measurement.nextId = 0;
+        updateIntervalSeekBarView();
+        updateFilterValuePickerView();
+        updateMinDiffValuePickerView();
+        updateImpactsCounterView();
+        updateMeasurementCounterView();
+        updateRecordingBtn();
+        updateRawDataLogBtn();
+        log.i(TAG, "DATA CLEARED");
+    }
+
+    private void updateConnectionButtonView() {
+        Button btnOpenConnection = findViewById(R.id.openConnection);
+        if (dataListener.isListening()) {
+            btnOpenConnection.setText(R.string.close_connection);
+            btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            btnOpenConnection.setText(R.string.open_connection);
+            btnOpenConnection.setBackgroundColor(btnBackgroundColor);
+        }
+    }
+
+    private void updateImpactsCounterView() {
+        ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
+    }
+
+    private void updateMeasurementCounterView() {
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(recordedSensorData.size()));
+    }
+
+    private void updateRawDataLogBtn() {
+        Button btnRawDataLog = findViewById(R.id.btnRawDataLog);
+        if (isRawDataLogEnabled) {
+            log.i(TAG, "RAW DATA SHOW ENABLED");
+            btnRawDataLog.setText(R.string.hide_raw_data);
+            btnRawDataLog.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            log.i(TAG, "RAW DATA SHOW DISABLED");
+            btnRawDataLog.setText(R.string.show_raw_data);
+            btnRawDataLog.setBackgroundColor(btnBackgroundColor);
+        }
+    }
+
+    private void updateRecordingBtn() {
+        Button btnRecording = findViewById(R.id.btnRecording);
+        if (isRecording) {
+            btnRecording.setText(R.string.stop_recording);
+            btnRecording.setBackgroundColor(getColor(R.color.design_default_color_error));
+        } else {
+            btnRecording.setText(R.string.start_recording);
+            btnRecording.setBackgroundColor(btnBackgroundColor);
+        }
+    }
+
     public void onClickSaveDataToCsv(View view) {
         if (recordedSensorData.size() == 0) {
             log.i(TAG, "NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
@@ -264,25 +346,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void createDataFile() {
-        //todo think how to save all data
         FilesManager filesManager = new FilesManagerImpl();
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
         filesManager.prepareDirectory(directory.getAbsolutePath());
-        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sAvgMmnts.csv",
+        File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sFilter.csv",
                 impacts,
                 recordedSensorData.size(),
                 minTimeIntervalBetweenImpactMillis,
-                minDifference,
-                avgMeasurements));
+                minDiffValues[minDifferencePickerIndex],
+                filterValues[filterValuePickerIndex]));
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < recordedSensorData.size(); i++) {
-            Measurement measurement = recordedSensorData.get(i);
-            sb.append(i + 1);
-            sb.append(",");
-            sb.append(measurement.getTime().getTime());
-            sb.append(",");
-            sb.append(measurement.getDistanceCentimeters());
-            sb.append("\n");
+        for (Measurement measurement : recordedSensorData.getRawMeasurements()) {
+            sb.append(String.format(Locale.getDefault(), "%d,%.2f,%d%n",
+                    measurement.getId(),
+                    measurement.getDistanceCentimeters(),
+                    measurement.getTime().getTime()
+            ));
         }
         filesManager.writeToFile(outputFile, sb.toString());
         log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
@@ -313,106 +392,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateConnectionButtonView() {
-        Button btnOpenConnection = findViewById(R.id.openConnection);
-        if (dataListener.isListening()) {
-            btnOpenConnection.setText(R.string.close_connection);
-            btnOpenConnection.setBackgroundColor(getColor(R.color.design_default_color_error));
-        } else {
-            btnOpenConnection.setText(R.string.open_connection);
-            btnOpenConnection.setBackgroundColor(btnBackgroundColor);
-        }
-    }
-
-    private boolean isImpactFound() {
-        if (recordedSensorData.size() > avgMeasurements) {
-            double sum = 0;
-            for (int i = recordedSensorData.size() - avgMeasurements - 1; i < recordedSensorData.size() - 1; i++) {
-                sum += recordedSensorData.get(i).getDistanceCentimeters();
-            }
-            double averageFromPreviousXMeasurements = sum / avgMeasurements;
-            double differenceToCheck = averageFromPreviousXMeasurements - recordedSensorData.get(recordedSensorData.size() - 1).getDistanceCentimeters();
-            if (differenceToCheck > minDifference) {
-                long currentMillis = System.currentTimeMillis();
-                long timeDifference = currentMillis - previousImpactTimestamp;
-                if (timeDifference >= minTimeIntervalBetweenImpactMillis) {
-                    impacts++;
-                    previousImpactTimestamp = currentMillis;
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private void updateImpactsCounterView() {
-        ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
-    }
-
-    private void updateMeasurementCounterView() {
-        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(recordedSensorData.size()));
-    }
-
-    public void onClickRawDataLog(View view) {
-        log.i(TAG, "---onClickRawDataShow");
-        isRawDataLogEnabled = !isRawDataLogEnabled;
-        updateRawDataLogBtn();
-    }
-
-    public void onClickReset(View view) {
-        consoleView.clear();
-        log.i(TAG, "---onClickReset");
-        dataListener.stopListening();
-        recordedSensorData.clear();
-        isRawDataLogEnabled = false;
-        //count impacts
-        minDifference = 0.4;
-        avgMeasurements = 4;
-        minTimeIntervalBetweenImpactMillis = 1000;
-        impacts = 0;
-        previousImpactTimestamp = 0;
-        updateIntervalSeekBarView();
-        updateAvgPickerView();
-        updateMinDiffPickerView();
-        updateImpactsCounterView();
-        updateMeasurementCounterView();
-        updateRecordingBtn();
-        updateRawDataLogBtn();
-        log.i(TAG, "DATA CLEARED");
-    }
-
-    private void updateRawDataLogBtn() {
-        Button btnRawDataLog = findViewById(R.id.btnRawDataLog);
-        if (isRawDataLogEnabled) {
-            log.i(TAG, "RAW DATA SHOW ENABLED");
-            btnRawDataLog.setText(R.string.hide_raw_data);
-            btnRawDataLog.setBackgroundColor(getColor(R.color.design_default_color_error));
-        } else {
-            log.i(TAG, "RAW DATA SHOW DISABLED");
-            btnRawDataLog.setText(R.string.show_raw_data);
-            btnRawDataLog.setBackgroundColor(btnBackgroundColor);
-        }
-    }
-
-    private void updateRecordingBtn() {
-        Button btnRecording = findViewById(R.id.btnRecording);
-        if (isRecording) {
-            btnRecording.setText(R.string.stop_recording);
-            btnRecording.setBackgroundColor(getColor(R.color.design_default_color_error));
-        } else {
-            btnRecording.setText(R.string.start_recording);
-            btnRecording.setBackgroundColor(btnBackgroundColor);
-        }
-    }
-
-    public void onClickRecording(View view) {
-        log.i(TAG, "---onClickRecording");
-        isRecording = !isRecording;
-        updateRecordingBtn();
-    }
-
-    public void onClickClearConsole(View view) {
-        consoleView.clear();
-        log.i(TAG, "---onClickClearConsole");
-    }
+//    private boolean isImpactFound() {
+//        if (recordedSensorData.size() > maxDifference) {
+//            double sum = 0;
+//            for (int i = filteredSensorData.size() - maxDifference - 1; i < filteredSensorData.size() - 1; i++) {
+//                sum += recordedSensorData.get(i).getDistanceCentimeters();
+//            }
+//            double averageFromPreviousXMeasurements = sum / maxDifference;
+//            double differenceToCheck = averageFromPreviousXMeasurements - recordedSensorData.get(recordedSensorData.size() - 1).getDistanceCentimeters();
+//            if (differenceToCheck > minDifference) {
+//                long currentMillis = System.currentTimeMillis();
+//                long timeDifference = currentMillis - previousImpactTimestamp;
+//                if (timeDifference >= minTimeIntervalBetweenImpactMillis) {
+//                    impacts++;
+//                    previousImpactTimestamp = currentMillis;
+//                    return true;
+//                }
+//            }
+//        }
+//        return false;
+//    }
 }

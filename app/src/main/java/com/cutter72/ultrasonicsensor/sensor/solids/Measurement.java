@@ -6,7 +6,7 @@ import java.util.Date;
 import java.util.Objects;
 
 public class Measurement implements Comparable<Measurement> {
-    private static int nextId = 0;
+    public static int nextId = 0;
     private final int id;
     private final double distanceCentimeters;
     private final Date time;
