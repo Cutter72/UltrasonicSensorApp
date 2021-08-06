@@ -18,7 +18,6 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresPermission;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -40,7 +39,7 @@ import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Locale;
@@ -49,16 +48,19 @@ import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNA
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int REQUEST_SAF = 1234;
     private static final int DEFAULT_FILTER_PICKER_INDEX = 5;
     private static final int DEFAULT_MIN_DIFF_PICKER_INDEX = 5;
-    private ConsoleViewLogger log;
     private boolean isRecording = false;
     private boolean isRawDataLogEnabled = false;
 
     //layout
+    private ConsoleViewLogger log;
     private ConsoleView consoleView;
-    private NumberPicker minDiffNumberPicker;
+    private NumberPicker minDifferenceNumberPicker;
     private NumberPicker filterDeviationNumberPicker;
+    private SeekBar minIntervalSeekBar;
+    private TextView minIntervalTextValue;
     @ColorInt
     private int defaultBtnBackgroundColor;
 
@@ -70,13 +72,13 @@ public class MainActivity extends AppCompatActivity {
     //count impacts
     private final int MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT = 100;
     private final int IMPACTS_DEFAULT = 0;
-    private final double[] minDiffValues =
+    private final double[] minDifferenceValues =
             new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
-    private final double[] filterValues =
+    private final double[] filterDeviationValues =
             new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
     private int minDifferencePickerIndex;
     private int filterDeviationPickerIndex;
-    private int minTimeIntervalBetweenImpactMillis; //50ms => 20 impacts / second
+    private int minIntervalBetweenImpactMillis; //50ms => 20 impacts / second
     private int impacts;
     private long previousImpactTimestamp;
 
@@ -85,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initializeLayout();
+        checkPermissions();
     }
 
     @Override
@@ -98,7 +101,7 @@ public class MainActivity extends AppCompatActivity {
         filteredSensorData = new SensorDataCarrierImpl();
         isRawDataLogEnabled = false;
         previousImpactTimestamp = 0;
-        minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT; //50ms => 20 impacts / second
+        minIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT; //50ms => 20 impacts / second
         impacts = IMPACTS_DEFAULT;
         initializeLogger();
         initializeSeekBar();
@@ -114,11 +117,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeSeekBar() {
-        SeekBar minTimeIntervalSeekBar = findViewById(R.id.minTimeIntervalSeekBar);
-        minTimeIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        minIntervalTextValue = findViewById(R.id.minIntervalTextValue);
+        minIntervalSeekBar = findViewById(R.id.minIntervalSeekBar);
+        minIntervalSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(convertToMillis(seekBar)));
+                minIntervalTextValue.setText(String.valueOf(convertToMillis(seekBar)));
             }
 
             @Override
@@ -127,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                minTimeIntervalBetweenImpactMillis = convertToMillis(seekBar);
+                minIntervalBetweenImpactMillis = convertToMillis(seekBar);
                 updateIntervalSeekBarLabel();
             }
         });
@@ -140,37 +144,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateIntervalSeekBarView() {
-        ((SeekBar) findViewById(R.id.minTimeIntervalSeekBar)).setProgress(convertToSeekBarProgressValue());
+        minIntervalSeekBar.setProgress(convertToSeekBarProgressValue());
     }
 
     private int convertToSeekBarProgressValue() {
-        return (minTimeIntervalBetweenImpactMillis - 50) / 50;
+        return (minIntervalBetweenImpactMillis - 50) / 50;
     }
 
     private void updateIntervalSeekBarLabel() {
-        ((TextView) findViewById(R.id.minTimeInterval)).setText(String.valueOf(minTimeIntervalBetweenImpactMillis));
+        minIntervalTextValue.setText(String.valueOf(minIntervalBetweenImpactMillis));
     }
 
     private void initializeRecordingBtn() {
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
-        defaultBtnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+        defaultBtnBackgroundColor = btnRecording.getBackgroundTintList()
+                .getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
     }
 
     private void initializeNumberPickers() {
         filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
         minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
-        minDiffNumberPicker = findAndPreparePicker(R.id.minDifferencePicker,
-                minDiffValues,
+        minDifferenceNumberPicker = findAndPreparePicker(R.id.minDifferencePicker,
+                minDifferenceValues,
                 (picker, oldVal, newVal) -> setMinDiffValue(newVal));
         filterDeviationNumberPicker = findAndPreparePicker(R.id.filterDeviationPicker,
-                filterValues,
+                filterDeviationValues,
                 (picker, oldVal, newVal) -> setFilterValue(newVal));
         updateMinDiffNumberPickerView();
         updateFilterDeviationNumberPickerView();
     }
 
-    private NumberPicker findAndPreparePicker(@IdRes int resId, double[] pickerValues, NumberPicker.OnValueChangeListener onValueChangeListener) {
+    private NumberPicker findAndPreparePicker(@IdRes int resId, double[] pickerValues,
+                                              NumberPicker.OnValueChangeListener onValueChangeListener) {
         NumberPicker numberPicker = findViewById(resId);
         numberPicker.setMinValue(0);
         numberPicker.setMaxValue(pickerValues.length - 1);
@@ -205,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateMinDiffNumberPickerView() {
-        minDiffNumberPicker.setValue(minDifferencePickerIndex);
+        minDifferenceNumberPicker.setValue(minDifferencePickerIndex);
     }
 
     private void updateFilterDeviationNumberPickerView() {
@@ -218,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
             if (isRecording) {
                 recordedSensorData.addData(data);
                 SensorDataCarrier filteredData = new DataFilterImpl()
-                        .filterByMedian(data, filterValues[filterDeviationPickerIndex]);
+                        .filterByMedian(data, filterDeviationValues[filterDeviationPickerIndex]);
                 filteredSensorData.addData(filteredData);
             }
             if (data.size() > 0) {
@@ -242,13 +248,29 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void checkPermissions() {
+        if (!checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            requestPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+    }
+
+    private boolean checkPermission(String manifestPermission) {
+        return ActivityCompat.checkSelfPermission(this,
+                manifestPermission) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestPermission(String manifestPermission) {
+        Intent intent = new Intent(this, RequestPermissionsActivity.class);
+        intent.putExtra(RequestPermissionsActivity.PERMISSION_TYPE, manifestPermission);
+        startActivity(intent);
+    }
+
     public void onClickOpenConnection(View view) {
         if (dataListener.isListening()) {
-            //todo bug fix
-            log.i(TAG, "---onClickCloseConnection");
+            log.i(TAG, "CONNECTION OPEN");
             dataListener.stopListening();
         } else {
-            log.i(TAG, "---onClickOpenConnection");
+            log.i(TAG, "CONNECTION CLOSED");
             dataListener.startListening();
         }
         updateConnectionButtonView();
@@ -257,12 +279,12 @@ public class MainActivity extends AppCompatActivity {
     public void onClickRecording(View view) {
         log.v(TAG, "---onClickRecording");
         isRecording = !isRecording;
-        updateRecordingBtn();
         if (isRecording) {
             log.i(TAG, "RECORDING START");
         } else {
             log.i(TAG, "RECORDING STOP");
         }
+        updateRecordingBtn();
     }
 
     public void onClickClearConsole(View view) {
@@ -284,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
         isRawDataLogEnabled = false;
         isRecording = false;
         //count impacts
-        minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT;
+        minIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT;
         minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
         filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
         impacts = 0;
@@ -347,15 +369,23 @@ public class MainActivity extends AppCompatActivity {
         btn.setBackgroundColor(defaultBtnBackgroundColor);
     }
 
-    @RequiresPermission(allOf = {Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE})
     public void onClickSaveDataToCsv(View view) {
         if (recordedSensorData.size() == 0) {
             log.i(TAG, "NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
         } else {
-            //todo bug fix while recording
-            requestPermissionsForWrite();
+            if (checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                actionCreateDocument();
+            } else {
+                requestPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+            }
         }
+    }
+
+    private void actionCreateDocument() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .setType("text/plain")
+                .addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(intent, REQUEST_SAF);
     }
 
     private void createDataFile() {
@@ -365,9 +395,9 @@ public class MainActivity extends AppCompatActivity {
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sFilter.csv",
                 impacts,
                 recordedSensorData.size(),
-                minTimeIntervalBetweenImpactMillis,
-                minDiffValues[minDifferencePickerIndex],
-                filterValues[filterDeviationPickerIndex]));
+                minIntervalBetweenImpactMillis,
+                minDifferenceValues[minDifferencePickerIndex],
+                filterDeviationValues[filterDeviationPickerIndex]));
         filesManager.writeToFile(outputFile, prepareCsvDataContent());
         log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
     }
@@ -385,40 +415,6 @@ public class MainActivity extends AppCompatActivity {
         return sb.toString();
     }
 
-    private static final int PERMISSION_ID = 1029;
-
-    private void requestPermissionsForWrite() {
-        ActivityCompat.requestPermissions(
-                this,
-                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE
-                },
-                PERMISSION_ID
-        );
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        System.out.println("onRequestPermissionsResult");
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_ID) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Granted.
-                System.out.println("Permissions granted. WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE");
-                actionCreateDocument();
-            }
-        }
-    }
-
-    private static final int REQUEST_SAF = 1129;
-
-    private void actionCreateDocument() {
-        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
-                .setType("text/plain")
-                .addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(intent, REQUEST_SAF);
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == REQUEST_SAF) {
@@ -427,10 +423,10 @@ public class MainActivity extends AppCompatActivity {
                 log.e(TAG, "Uri from result: " + uri.toString());
                 try {
                     OutputStream outputStream = getContentResolver().openOutputStream(uri);
-                    new FilesManagerImpl().writeToFile(outputStream, prepareCsvDataContent());
+                    outputStream.write(prepareCsvDataContent().getBytes());
                     log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", uri.getPath()));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
+                } catch (IOException e) {
+                    log.logException(TAG, e);
                 }
             }
         } else {

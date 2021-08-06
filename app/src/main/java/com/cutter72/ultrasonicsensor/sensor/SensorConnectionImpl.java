@@ -157,22 +157,26 @@ public class SensorConnectionImpl implements SensorConnection {
     @Override
     public SensorDataCarrier readData(@NonNull byte[] buffer) {
         SensorDataCarrier data = new SensorDataCarrierImpl();
-        if (sensorUsbSerialPort.isOpen()) {
-            try {
-                sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
-                data.addRawData(buffer);
-                if (data.size() < 1) {
-                    if (noSignalCounter % 10 == 0) {
-                        noSignalCounter = NO_SIGNAL_COUNTER_RESET_VALUE;
-                    } else {
-                        noSignalCounter++;
+        if (sensorUsbSerialPort != null) {
+            if (sensorUsbSerialPort.isOpen()) {
+                try {
+                    sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
+                    data.addRawData(buffer);
+                    if (data.size() < 1) {
+                        if (noSignalCounter % 10 == 0) {
+                            noSignalCounter = NO_SIGNAL_COUNTER_RESET_VALUE;
+                        } else {
+                            noSignalCounter++;
+                        }
                     }
+                } catch (IOException | NullPointerException e) {
+                    log.logException(TAG, e);
                 }
-            } catch (IOException | NullPointerException e) {
-                log.logException(TAG, e);
+            } else {
+                log.i(TAG, "noConnectionOpenCannotReadData");
             }
         } else {
-            log.i(TAG, "noConnectionOpenCannotReadData");
+            log.i(TAG, "sensorUsbSerialPort == null");
         }
         return data;
     }
@@ -183,7 +187,7 @@ public class SensorConnectionImpl implements SensorConnection {
         closeSerialPort();
         closeUsbDeviceConnection();
         clearNoSignalCounter();
-        log.i(TAG, "CONNECTION CLOSED");
+        log.i(TAG, "close");
     }
 
     @Override

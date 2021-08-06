@@ -132,12 +132,12 @@
         app:layout_constraintTop_toTopOf="@+id/openConnection" />
 
     <TextView
-        android:id="@+id/minTimeInterval"
+        android:id="@+id/minIntervalTextValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/zero"
         app:layout_constraintBottom_toBottomOf="@+id/bufferTimeOutLabel"
-        app:layout_constraintEnd_toStartOf="@+id/minTimeIntervalSeekBar"
+        app:layout_constraintEnd_toStartOf="@+id/minIntervalSeekBar"
         app:layout_constraintTop_toTopOf="@+id/bufferTimeOutLabel" />
 
     <TextView
@@ -176,7 +176,7 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <SeekBar
-        android:id="@+id/minTimeIntervalSeekBar"
+        android:id="@+id/minIntervalSeekBar"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginEnd="24dp"
