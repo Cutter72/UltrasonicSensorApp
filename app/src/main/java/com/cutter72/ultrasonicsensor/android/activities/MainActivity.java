@@ -57,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
 
     //layout
     private ConsoleView consoleView;
+    private NumberPicker minDiffNumberPicker;
+    private NumberPicker filterDeviationNumberPicker;
     @ColorInt
     private int defaultBtnBackgroundColor;
 
@@ -108,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
     private void initializeLogger() {
         consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
         log = ConsoleViewLoggerImpl.initializeLogger(this, consoleView);
-        log.i(TAG, "Console view created.");
+        log.i(TAG, "CONSOLE VIEW CREATED");
     }
 
     private void initializeSeekBar() {
@@ -158,22 +160,24 @@ public class MainActivity extends AppCompatActivity {
     private void initializeNumberPickers() {
         filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
         minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
-        findAndPreparePicker(R.id.minDifferencePicker,
+        minDiffNumberPicker = findAndPreparePicker(R.id.minDifferencePicker,
                 minDiffValues,
                 (picker, oldVal, newVal) -> setMinDiffValue(newVal));
-        findAndPreparePicker(R.id.filterDeviationPicker,
+        filterDeviationNumberPicker = findAndPreparePicker(R.id.filterDeviationPicker,
                 filterValues,
                 (picker, oldVal, newVal) -> setFilterValue(newVal));
-        updateMinDiffValuePickerView();
-        updateFilterValuePickerView();
+        updateMinDiffNumberPickerView();
+        updateFilterDeviationNumberPickerView();
     }
 
-    private void findAndPreparePicker(@IdRes int resId, double[] pickerValues, NumberPicker.OnValueChangeListener onValueChangeListener) {
+    private NumberPicker findAndPreparePicker(@IdRes int resId, double[] pickerValues, NumberPicker.OnValueChangeListener onValueChangeListener) {
         NumberPicker numberPicker = findViewById(resId);
         numberPicker.setMinValue(0);
         numberPicker.setMaxValue(pickerValues.length - 1);
         numberPicker.setDisplayedValues(transformToStringArray(pickerValues));
         numberPicker.setOnValueChangedListener(onValueChangeListener);
+        numberPicker.setWrapSelectorWheel(false);
+        return numberPicker;
     }
 
     private String[] transformToStringArray(double[] doubleTab) {
@@ -186,9 +190,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void setMinDiffValue(int newIndex) {
         minDifferencePickerIndex = newIndex;
-        if (filterDeviationPickerIndex > newIndex) {
+        if (filterDeviationPickerIndex < newIndex) {
             filterDeviationPickerIndex = newIndex;
         }
+        updateFilterDeviationNumberPickerView();
     }
 
     private void setFilterValue(int newIndex) {
@@ -196,14 +201,15 @@ public class MainActivity extends AppCompatActivity {
         if (minDifferencePickerIndex > newIndex) {
             minDifferencePickerIndex = newIndex;
         }
+        updateMinDiffNumberPickerView();
     }
 
-    private void updateMinDiffValuePickerView() {
-        ((NumberPicker) findViewById(R.id.minDifferencePicker)).setValue(minDifferencePickerIndex);
+    private void updateMinDiffNumberPickerView() {
+        minDiffNumberPicker.setValue(minDifferencePickerIndex);
     }
 
-    private void updateFilterValuePickerView() {
-        ((NumberPicker) findViewById(R.id.filterDeviationPicker)).setValue(filterDeviationPickerIndex);
+    private void updateFilterDeviationNumberPickerView() {
+        filterDeviationNumberPicker.setValue(filterDeviationPickerIndex);
     }
 
     private void initializeSensorDataListener() {
@@ -286,8 +292,8 @@ public class MainActivity extends AppCompatActivity {
         Measurement.resetId();
         updateImpactsCounterView();
         updateIntervalSeekBarView();
-        updateFilterValuePickerView();
-        updateMinDiffValuePickerView();
+        updateFilterDeviationNumberPickerView();
+        updateMinDiffNumberPickerView();
         updateMeasurementCounterView();
         updateRecordingBtn();
         updateRawDataLogBtn();
