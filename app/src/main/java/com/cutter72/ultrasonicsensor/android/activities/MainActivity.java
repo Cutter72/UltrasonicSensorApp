@@ -49,20 +49,28 @@ import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNA
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int REQUEST_SAF = 1234;
-    private static final int DEFAULT_FILTER_PICKER_INDEX = 5;
-    private static final int DEFAULT_MIN_DIFF_PICKER_INDEX = 5;
+    private static final int IMPACTS_DEFAULT = 0;
+
+    //states
     private boolean isRecording = false;
     private boolean isRawDataLogEnabled = false;
 
     //layout
+    private static final int DEFAULT_FILTER_PICKER_INDEX = 5;
+    private static final int DEFAULT_MIN_DIFF_PICKER_INDEX = 5;
+    private static final int DEFAULT_INTERVAL_MILLIS = 100;
+    private static final double[] minDifferenceValues =
+            new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
+    private static final double[] filterDeviationValues =
+            new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
+    @ColorInt
+    private int defaultBtnBackgroundColor;
     private ConsoleViewLogger log;
     private ConsoleView consoleView;
     private NumberPicker minDifferenceNumberPicker;
     private NumberPicker filterDeviationNumberPicker;
     private SeekBar minIntervalSeekBar;
     private TextView minIntervalTextValue;
-    @ColorInt
-    private int defaultBtnBackgroundColor;
 
     private DataListener dataListener;
     private SensorDataCarrier recordedSensorData;
@@ -70,15 +78,9 @@ public class MainActivity extends AppCompatActivity {
 
 
     //count impacts
-    private final int MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT = 100;
-    private final int IMPACTS_DEFAULT = 0;
-    private final double[] minDifferenceValues =
-            new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
-    private final double[] filterDeviationValues =
-            new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
     private int minDifferencePickerIndex;
     private int filterDeviationPickerIndex;
-    private int minIntervalBetweenImpactMillis; //50ms => 20 impacts / second
+    private int intervalMillis; //50ms => 20 impacts / second
     private int impacts;
     private long previousImpactTimestamp;
 
@@ -101,7 +103,7 @@ public class MainActivity extends AppCompatActivity {
         filteredSensorData = new SensorDataCarrierImpl();
         isRawDataLogEnabled = false;
         previousImpactTimestamp = 0;
-        minIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT; //50ms => 20 impacts / second
+        intervalMillis = DEFAULT_INTERVAL_MILLIS; //50ms => 20 impacts / second
         impacts = IMPACTS_DEFAULT;
         initializeLogger();
         initializeSeekBar();
@@ -131,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                minIntervalBetweenImpactMillis = convertToMillis(seekBar);
+                intervalMillis = convertToMillis(seekBar);
                 updateIntervalSeekBarLabel();
             }
         });
@@ -148,11 +150,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int convertToSeekBarProgressValue() {
-        return (minIntervalBetweenImpactMillis - 50) / 50;
+        return (intervalMillis - 50) / 50;
     }
 
     private void updateIntervalSeekBarLabel() {
-        minIntervalTextValue.setText(String.valueOf(minIntervalBetweenImpactMillis));
+        minIntervalTextValue.setText(String.valueOf(intervalMillis));
     }
 
     private void initializeRecordingBtn() {
@@ -306,7 +308,7 @@ public class MainActivity extends AppCompatActivity {
         isRawDataLogEnabled = false;
         isRecording = false;
         //count impacts
-        minIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT;
+        intervalMillis = DEFAULT_INTERVAL_MILLIS;
         minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
         filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
         impacts = 0;
@@ -395,7 +397,7 @@ public class MainActivity extends AppCompatActivity {
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sFilter.csv",
                 impacts,
                 recordedSensorData.size(),
-                minIntervalBetweenImpactMillis,
+                intervalMillis,
                 minDifferenceValues[minDifferencePickerIndex],
                 filterDeviationValues[filterDeviationPickerIndex]));
         filesManager.writeToFile(outputFile, prepareCsvDataContent());
