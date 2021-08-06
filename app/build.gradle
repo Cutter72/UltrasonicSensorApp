@@ -11,7 +11,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 30
         versionCode 1
-        versionName "1.0"
+        versionName "0.7.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -43,10 +43,9 @@ dependencies {
     //serial port connection
     implementation 'com.github.mik3y:usb-serial-for-android:3.3.0'
 //    implementation 'com.github.felHR85:UsbSerial:6.1.0'
-//    compileOnly 'com.google.android.things:androidthings:1.0'
 
     //Local background crash reporter
     implementation 'com.balsikandar.android:crashreporter:1.1.0'
     //CSV reader writer
-    implementation 'com.opencsv:opencsv:5.5.1'
+//    implementation 'com.opencsv:opencsv:5.5.1'
 }

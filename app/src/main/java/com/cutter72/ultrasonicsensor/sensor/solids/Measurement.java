@@ -6,7 +6,8 @@ import java.util.Date;
 import java.util.Objects;
 
 public class Measurement implements Comparable<Measurement> {
-    public static int nextId = 0;
+    public static final int INITIAL_ID = 0;
+    public static int nextId = INITIAL_ID;
     private final int id;
     private final double distanceCentimeters;
     private final Date time;
@@ -16,6 +17,10 @@ public class Measurement implements Comparable<Measurement> {
         this.time = new Date();
         this.id = nextId;
         nextId++;
+    }
+
+    public static void resetId() {
+        nextId = INITIAL_ID;
     }
 
     public int getId() {

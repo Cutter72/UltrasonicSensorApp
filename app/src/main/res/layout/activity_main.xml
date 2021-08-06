@@ -159,16 +159,16 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <TextView
-        android:id="@+id/avgMeasurementsLabel"
+        android:id="@+id/filterDeviationLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/avg_measur"
-        app:layout_constraintBottom_toTopOf="@+id/avgMeasurementsPicker"
+        android:text="@string/filter_deviation"
+        app:layout_constraintBottom_toTopOf="@+id/filterDeviationPicker"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/scrollView" />
 
     <NumberPicker
-        android:id="@+id/avgMeasurementsPicker"
+        android:id="@+id/filterDeviationPicker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@color/teal_200"

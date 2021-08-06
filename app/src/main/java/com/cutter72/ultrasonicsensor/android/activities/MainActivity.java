@@ -1,9 +1,11 @@
 package com.cutter72.ultrasonicsensor.android.activities;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
@@ -12,7 +14,11 @@ import android.widget.NumberPicker;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import androidx.annotation.ColorInt;
+import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresPermission;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -26,7 +32,6 @@ import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
-import com.cutter72.ultrasonicsensor.sensor.activists.DataCallback;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataFilterImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
@@ -35,12 +40,13 @@ import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Locale;
 
 import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNAL_COUNTER_RESET_VALUE;
 
-@SuppressWarnings({"Convert2Lambda"})
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int DEFAULT_FILTER_PICKER_INDEX = 5;
@@ -51,7 +57,8 @@ public class MainActivity extends AppCompatActivity {
 
     //layout
     private ConsoleView consoleView;
-    private int btnDefaultBackgroundColor;
+    @ColorInt
+    private int defaultBtnBackgroundColor;
 
     private DataListener dataListener;
     private SensorDataCarrier recordedSensorData;
@@ -66,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private final double[] filterValues =
             new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
     private int minDifferencePickerIndex;
-    private int filterValuePickerIndex;
+    private int filterDeviationPickerIndex;
     private int minTimeIntervalBetweenImpactMillis; //50ms => 20 impacts / second
     private int impacts;
     private long previousImpactTimestamp;
@@ -145,34 +152,28 @@ public class MainActivity extends AppCompatActivity {
     private void initializeRecordingBtn() {
         Button btnRecording = findViewById(R.id.btnRecording);
         Drawable btnBackgroundDrawable = btnRecording.getBackground();
-        btnDefaultBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
+        defaultBtnBackgroundColor = btnRecording.getBackgroundTintList().getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
     }
 
     private void initializeNumberPickers() {
-        filterValuePickerIndex = DEFAULT_FILTER_PICKER_INDEX;
+        filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
         minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
-        NumberPicker minDifferencePicker = findViewById(R.id.minDifferencePicker);
-        minDifferencePicker.setMinValue(0);
-        minDifferencePicker.setMaxValue(minDiffValues.length - 1);
-        minDifferencePicker.setDisplayedValues(transformToStringArray(minDiffValues));
-        minDifferencePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
-            @Override
-            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
-                setMinDiffValue(newVal);
-            }
-        });
-        NumberPicker filterValuePicker = findViewById(R.id.avgMeasurementsPicker);
-        filterValuePicker.setMinValue(0);
-        filterValuePicker.setMaxValue(filterValues.length - 1);
-        filterValuePicker.setDisplayedValues(transformToStringArray(filterValues));
-        filterValuePicker.setOnValueChangedListener(new NumberPicker.OnValueChangeListener() {
-            @Override
-            public void onValueChange(NumberPicker picker, int oldVal, int newVal) {
-                setFilterValue(newVal);
-            }
-        });
+        findAndPreparePicker(R.id.minDifferencePicker,
+                minDiffValues,
+                (picker, oldVal, newVal) -> setMinDiffValue(newVal));
+        findAndPreparePicker(R.id.filterDeviationPicker,
+                filterValues,
+                (picker, oldVal, newVal) -> setFilterValue(newVal));
         updateMinDiffValuePickerView();
         updateFilterValuePickerView();
+    }
+
+    private void findAndPreparePicker(@IdRes int resId, double[] pickerValues, NumberPicker.OnValueChangeListener onValueChangeListener) {
+        NumberPicker numberPicker = findViewById(resId);
+        numberPicker.setMinValue(0);
+        numberPicker.setMaxValue(pickerValues.length - 1);
+        numberPicker.setDisplayedValues(transformToStringArray(pickerValues));
+        numberPicker.setOnValueChangedListener(onValueChangeListener);
     }
 
     private String[] transformToStringArray(double[] doubleTab) {
@@ -185,13 +186,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void setMinDiffValue(int newIndex) {
         minDifferencePickerIndex = newIndex;
-        if (filterValuePickerIndex > newIndex) {
-            filterValuePickerIndex = newIndex;
+        if (filterDeviationPickerIndex > newIndex) {
+            filterDeviationPickerIndex = newIndex;
         }
     }
 
     private void setFilterValue(int newIndex) {
-        filterValuePickerIndex = newIndex;
+        filterDeviationPickerIndex = newIndex;
         if (minDifferencePickerIndex > newIndex) {
             minDifferencePickerIndex = newIndex;
         }
@@ -202,25 +203,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateFilterValuePickerView() {
-        ((NumberPicker) findViewById(R.id.avgMeasurementsPicker)).setValue(filterValuePickerIndex);
+        ((NumberPicker) findViewById(R.id.filterDeviationPicker)).setValue(filterDeviationPickerIndex);
     }
 
     private void initializeSensorDataListener() {
         SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
-        dataListener = new DataListenerImpl(sensorConnection, new DataCallback() {
-            @Override
-            public void onDataReceive(SensorDataCarrier data) {
-                if (isRecording) {
-                    recordedSensorData.addData(data);
-                    SensorDataCarrier filteredData = new DataFilterImpl()
-                            .filterByMedian(data, filterValues[filterValuePickerIndex]);
-                    filteredSensorData.addData(filteredData);
-                }
-                if (data.size() > 0) {
-                    runOnUiThread(() -> printMeasurements(data));
-                } else {
-                    printNoSignalInfo();
-                }
+        dataListener = new DataListenerImpl(sensorConnection, data -> {
+            if (isRecording) {
+                recordedSensorData.addData(data);
+                SensorDataCarrier filteredData = new DataFilterImpl()
+                        .filterByMedian(data, filterValues[filterDeviationPickerIndex]);
+                filteredSensorData.addData(filteredData);
+            }
+            if (data.size() > 0) {
+                runOnUiThread(() -> printMeasurements(data));
+            } else {
+                printNoSignalInfo();
             }
         });
     }
@@ -240,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickOpenConnection(View view) {
         if (dataListener.isListening()) {
+            //todo bug fix
             log.i(TAG, "---onClickCloseConnection");
             dataListener.stopListening();
         } else {
@@ -280,13 +279,15 @@ public class MainActivity extends AppCompatActivity {
         isRecording = false;
         //count impacts
         minTimeIntervalBetweenImpactMillis = MIN_INTERVAL_BETWEEN_IMPACTS_MILLIS_DEFAULT;
+        minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
+        filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
         impacts = 0;
         previousImpactTimestamp = 0;
-        Measurement.nextId = 0;
+        Measurement.resetId();
+        updateImpactsCounterView();
         updateIntervalSeekBarView();
         updateFilterValuePickerView();
         updateMinDiffValuePickerView();
-        updateImpactsCounterView();
         updateMeasurementCounterView();
         updateRecordingBtn();
         updateRawDataLogBtn();
@@ -314,12 +315,10 @@ public class MainActivity extends AppCompatActivity {
         Button btnRawDataLog = findViewById(R.id.btnRawDataLog);
         if (isRawDataLogEnabled) {
             log.i(TAG, "RAW DATA SHOW ENABLED");
-            btnRawDataLog.setText(R.string.hide_raw_data);
-            btnRawDataLog.setBackgroundColor(getColor(R.color.design_default_color_error));
+            turnRedAndSetText(btnRawDataLog, R.string.hide_raw_data);
         } else {
             log.i(TAG, "RAW DATA SHOW DISABLED");
-            btnRawDataLog.setText(R.string.show_raw_data);
-            btnRawDataLog.setBackgroundColor(btnDefaultBackgroundColor);
+            turnBackToDefaultColor(btnRawDataLog, R.string.show_raw_data);
         }
     }
 
@@ -339,14 +338,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void turnBackToDefaultColor(Button btn, @StringRes int stringRes) {
         btn.setText(stringRes);
-        btn.setBackgroundColor(btnDefaultBackgroundColor);
-
+        btn.setBackgroundColor(defaultBtnBackgroundColor);
     }
 
+    @RequiresPermission(allOf = {Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE})
     public void onClickSaveDataToCsv(View view) {
         if (recordedSensorData.size() == 0) {
             log.i(TAG, "NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
         } else {
+            //todo bug fix while recording
             requestPermissionsForWrite();
         }
     }
@@ -360,7 +361,13 @@ public class MainActivity extends AppCompatActivity {
                 recordedSensorData.size(),
                 minTimeIntervalBetweenImpactMillis,
                 minDiffValues[minDifferencePickerIndex],
-                filterValues[filterValuePickerIndex]));
+                filterValues[filterDeviationPickerIndex]));
+        filesManager.writeToFile(outputFile, prepareCsvDataContent());
+        log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
+    }
+
+    @NonNull
+    private String prepareCsvDataContent() {
         StringBuilder sb = new StringBuilder();
         for (Measurement measurement : recordedSensorData.getRawMeasurements()) {
             sb.append(String.format(Locale.getDefault(), "%d,%.2f,%d%n",
@@ -369,8 +376,7 @@ public class MainActivity extends AppCompatActivity {
                     measurement.getTime().getTime()
             ));
         }
-        filesManager.writeToFile(outputFile, sb.toString());
-        log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
+        return sb.toString();
     }
 
     private static final int PERMISSION_ID = 1029;
@@ -393,12 +399,40 @@ public class MainActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Granted.
                 System.out.println("Permissions granted. WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE");
-                createDataFile();
+                actionCreateDocument();
             }
         }
     }
 
-//    private boolean isImpactFound() {
+    private static final int REQUEST_SAF = 1129;
+
+    private void actionCreateDocument() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .setType("text/plain")
+                .addCategory(Intent.CATEGORY_OPENABLE);
+        startActivityForResult(intent, REQUEST_SAF);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == REQUEST_SAF) {
+            if (resultCode == RESULT_OK && data != null) {
+                Uri uri = data.getData();
+                log.e(TAG, "Uri from result: " + uri.toString());
+                try {
+                    OutputStream outputStream = getContentResolver().openOutputStream(uri);
+                    new FilesManagerImpl().writeToFile(outputStream, prepareCsvDataContent());
+                    log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", uri.getPath()));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    //    private boolean isImpactFound() {
 //        if (recordedSensorData.size() > maxDifference) {
 //            double sum = 0;
 //            for (int i = filteredSensorData.size() - maxDifference - 1; i < filteredSensorData.size() - 1; i++) {
