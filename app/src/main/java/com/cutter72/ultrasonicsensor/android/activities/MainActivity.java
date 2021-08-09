@@ -55,11 +55,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_SAF = 1234;
     private static final int IMPACTS_DEFAULT = 0;
 
-    private BroadcastReceiver receiver;
-
     //states
-    private boolean isRecording = false;
-    private boolean isRawDataLogEnabled = false;
+    private boolean isRecording;
+    private boolean isRawDataLogEnabled;
 
     //layout
     private static final int DEFAULT_INTERVAL_MILLIS = 100;
@@ -69,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
             new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
     @ColorInt
     private int defaultBtnBackgroundColor;
+    private int measurementsReceived;
     private ConsoleViewLogger log;
     private ConsoleView consoleView;
     private NumberPicker minDifferenceNumberPicker;
@@ -79,8 +78,8 @@ public class MainActivity extends AppCompatActivity {
     //sensor data listener
     private DataListener dataListener;
     //data storage
-    private SensorDataCarrier recordedSensorData;
-    private SensorDataCarrier filteredSensorData;
+    private SensorDataCarrier recordedMeasurements;
+    private SensorDataCarrier filteredMeasurements;
 
 
     //count impacts
@@ -94,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initializeLayout();
+        initializeActivity();
         initializeBroadcastReceiver();
         checkPermissions();
     }
@@ -105,24 +104,23 @@ public class MainActivity extends AppCompatActivity {
 //        isRecording = false;
     }
 
-    private void initializeLayout() {
-        recordedSensorData = new SensorDataCarrierImpl();
-        filteredSensorData = new SensorDataCarrierImpl();
-        isRawDataLogEnabled = false;
-        previousImpactTimestamp = 0;
-        intervalMillis = DEFAULT_INTERVAL_MILLIS; //50ms => 20 impacts / second
-        impacts = IMPACTS_DEFAULT;
-        initializeLogger();
-        initializeSeekBar();
-        initializeRecordingBtn();
-        initializeNumberPickers();
-        initializeSensorDataListener();
+    private void initializeActivity() {
+        initializeData();
+        initializeLayout();
+        updateLayout();
     }
 
-    private void initializeLogger() {
-        consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
-        log = ConsoleViewLoggerImpl.initializeLogger(this, consoleView);
-        log.i(TAG, "CONSOLE VIEW CREATED");
+    private void initializeLayout() {
+        initializeDefaultBtnColor();
+        initializeSeekBar();
+        initializeNumberPickers();
+    }
+
+    private void initializeDefaultBtnColor() {
+        Button btnRecording = findViewById(R.id.btnRecording);
+        Drawable btnBackgroundDrawable = btnRecording.getBackground();
+        defaultBtnBackgroundColor = btnRecording.getBackgroundTintList()
+                .getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
     }
 
     private void initializeSeekBar() {
@@ -162,13 +160,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateIntervalSeekBarLabel() {
         minIntervalTextValue.setText(String.valueOf(intervalMillis));
-    }
-
-    private void initializeRecordingBtn() {
-        Button btnRecording = findViewById(R.id.btnRecording);
-        Drawable btnBackgroundDrawable = btnRecording.getBackground();
-        defaultBtnBackgroundColor = btnRecording.getBackgroundTintList()
-                .getColorForState(btnBackgroundDrawable.getState(), R.color.purple_500);
     }
 
     private void initializeNumberPickers() {
@@ -236,15 +227,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeSensorDataListener() {
-        SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
+        SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE), log);
         DataFilter dataFilter = new DataFilterImpl();
         dataListener = new DataListenerImpl(sensorConnection, data -> {
-            if (isRecording) {
-                recordedSensorData.addData(data);
-                filteredSensorData.addData(dataFilter.filterByMedian(data, FILTER_DEVIATION_VALUES[filterDeviationPickerIndex]));
-            }
-            if (data.size() > 0) {
-                runOnUiThread(() -> printMeasurements(data));
+            int dataSize = data.size();
+            boolean isDataNotEmpty = dataSize > 0;
+            if (isDataNotEmpty) {
+                measurementsReceived += dataSize;
+                if (isRecording) {
+                    recordedMeasurements.addData(data);
+                    filteredMeasurements.addData(dataFilter.filterByMedian(data, getFilterDeviationValue()));
+                }
+                runOnUiThread(() -> {
+                    printMeasurements(data);
+                    updateMeasurementCounterView();
+                    updateRecordedMeasurementCounterView();
+                    updateFilteredMeasurementCounterView();
+                });
             } else {
                 printNoSignalInfo();
             }
@@ -265,11 +264,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeBroadcastReceiver() {
-        receiver = new BroadcastReceiver() {
+        BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
-                // When discovery finds a device
                 if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                     log.i(TAG, "USB DEVICE ATTACHED");
                 }
@@ -303,23 +301,16 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickOpenConnection(View view) {
         if (dataListener.isListening()) {
-            log.i(TAG, "CONNECTION OPEN");
             dataListener.stopListening();
         } else {
-            log.i(TAG, "CONNECTION CLOSED");
             dataListener.startListening();
         }
-        updateConnectionButtonView();
+        updateOpenConnectionBtnView();
     }
 
     public void onClickRecording(View view) {
         log.v(TAG, "---onClickRecording");
         isRecording = !isRecording;
-        if (isRecording) {
-            log.i(TAG, "RECORDING START");
-        } else {
-            log.i(TAG, "RECORDING STOP");
-        }
         updateRecordingBtn();
     }
 
@@ -337,33 +328,60 @@ public class MainActivity extends AppCompatActivity {
     public void onClickReset(View view) {
         consoleView.clear();
         log.v(TAG, "---onClickReset");
-        dataListener.stopListening();
-        recordedSensorData.clear();
+        initializeData();
+        updateLayout();
+        log.i(TAG, "DATA CLEARED");
+    }
+
+    private void initializeData() {
         isRawDataLogEnabled = false;
         isRecording = false;
+        measurementsReceived = 0;
+        recordedMeasurements = new SensorDataCarrierImpl();
+        filteredMeasurements = new SensorDataCarrierImpl();
         //count impacts
         intervalMillis = DEFAULT_INTERVAL_MILLIS;
         minDifferencePickerIndex = getDefaultMinDiffPickerIndex();
         filterDeviationPickerIndex = getDefaultFilterDeviationPickerIndex();
-        impacts = 0;
+        impacts = IMPACTS_DEFAULT;
         previousImpactTimestamp = 0;
         Measurement.resetId();
-        updateImpactsCounterView();
-        updateIntervalSeekBarView();
-        updateFilterDeviationNumberPickerView();
-        updateMinDiffNumberPickerView();
-        updateMeasurementCounterView();
-        updateRecordingBtn();
-        updateRawDataLogBtn();
-        log.i(TAG, "DATA CLEARED");
+        initializeConsoleViewAndLogger();
+        if (dataListener != null) {
+            dataListener.stopListening();
+        } else {
+            initializeSensorDataListener();
+        }
     }
 
-    private void updateConnectionButtonView() {
+    private void initializeConsoleViewAndLogger() {
+        consoleView = new ConsoleViewImpl(findViewById(R.id.linearLayout), findViewById(R.id.scrollView));
+        log = new ConsoleViewLoggerImpl(this, consoleView);
+        log.i(TAG, "CONSOLE VIEW CREATED");
+    }
+
+    private void updateLayout() {
+        updateRecordingBtn();
+        updateRawDataLogBtn();
+        updateOpenConnectionBtnView();
+        updateImpactsCounterView();
+        updateMeasurementCounterView();
+        updateRecordedMeasurementCounterView();
+        updateFilteredMeasurementCounterView();
+        updateFilterDeviationNumberPickerView();
+        updateMinDiffNumberPickerView();
+        updateIntervalSeekBarView();
+
+    }
+
+    private void updateOpenConnectionBtnView() {
         Button btnOpenConnection = findViewById(R.id.openConnection);
         if (dataListener.isListening()) {
             turnRedAndSetText(btnOpenConnection, R.string.close_connection);
+            log.i(TAG, "CONNECTION OPEN");
         } else {
             turnBackToDefaultColor(btnOpenConnection, R.string.open_connection);
+            log.i(TAG, "CONNECTION CLOSED");
         }
     }
 
@@ -372,7 +390,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateMeasurementCounterView() {
-        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(recordedSensorData.size()));
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(measurementsReceived));
+    }
+
+    private void updateRecordedMeasurementCounterView() {
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(recordedMeasurements.size()));
+    }
+
+    private void updateFilteredMeasurementCounterView() {
+        ((TextView) findViewById(R.id.filteredMeasurementsCounter)).setText(String.valueOf(filteredMeasurements.size()));
     }
 
     private void updateRawDataLogBtn() {
@@ -390,8 +416,10 @@ public class MainActivity extends AppCompatActivity {
         Button btnRecording = findViewById(R.id.btnRecording);
         if (isRecording) {
             turnRedAndSetText(btnRecording, R.string.stop_recording);
+            log.i(TAG, "RECORDING START");
         } else {
             turnBackToDefaultColor(btnRecording, R.string.start_recording);
+            log.i(TAG, "RECORDING STOP");
         }
     }
 
@@ -406,7 +434,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSaveDataToCsv(View view) {
-        if (recordedSensorData.size() == 0) {
+        if (recordedMeasurements.size() == 0) {
             log.i(TAG, "NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
         } else {
             if (checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
@@ -430,18 +458,26 @@ public class MainActivity extends AppCompatActivity {
         filesManager.prepareDirectory(directory.getAbsolutePath());
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sFilter.csv",
                 impacts,
-                recordedSensorData.size(),
+                recordedMeasurements.size(),
                 intervalMillis,
-                MIN_DIFFERENCE_VALUES[minDifferencePickerIndex],
-                FILTER_DEVIATION_VALUES[filterDeviationPickerIndex]));
+                getMinDifferenceValue(),
+                getFilterDeviationValue()));
         filesManager.writeToFile(outputFile, prepareCsvDataContent());
         log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
+    }
+
+    private double getMinDifferenceValue() {
+        return MIN_DIFFERENCE_VALUES[minDifferencePickerIndex];
+    }
+
+    private double getFilterDeviationValue() {
+        return FILTER_DEVIATION_VALUES[filterDeviationPickerIndex];
     }
 
     @NonNull
     private String prepareCsvDataContent() {
         StringBuilder sb = new StringBuilder();
-        for (Measurement measurement : recordedSensorData.getRawMeasurements()) {
+        for (Measurement measurement : recordedMeasurements.getRawMeasurements()) {
             sb.append(String.format(Locale.getDefault(), "%d,%.2f,%d%n",
                     measurement.getId(),
                     measurement.getDistanceCentimeters(),

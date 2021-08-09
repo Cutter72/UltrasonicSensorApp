@@ -17,7 +17,9 @@
     <string name="impacts">Impacts</string>
     <string name="min_diff">Min. DIff.</string>
     <string name="avg_measur">Avg. Measur.</string>
-    <string name="min_time_interval">Min. interval between impacts [ms]</string>
+    <string name="min_time_interval">Interval between impacts [ms]:</string>
     <string name="console_cleared">CONSOLE CLEARED</string>
     <string name="filter_deviation">Filter deviation</string>
+    <string name="recorded_measurements">Recorded measurements:</string>
+    <string name="filtered_measurements">Filtered measurements:</string>
 </resources>

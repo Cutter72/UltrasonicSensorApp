@@ -7,7 +7,6 @@ import android.hardware.usb.UsbManager;
 import androidx.annotation.NonNull;
 
 import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLogger;
-import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLoggerImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
@@ -40,9 +39,9 @@ public class SensorConnectionImpl implements SensorConnection {
 
     public static int noSignalCounter = NO_SIGNAL_COUNTER_INITIAL_VALUE;
 
-    public SensorConnectionImpl(UsbManager usbManager) {
+    public SensorConnectionImpl(UsbManager usbManager, ConsoleViewLogger logger) {
         this.usbManager = usbManager;
-        this.log = ConsoleViewLoggerImpl.getInstance();
+        this.log = logger;
     }
 
     @Override
