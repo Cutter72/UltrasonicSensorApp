@@ -56,8 +56,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean isRawDataLogEnabled = false;
 
     //layout
-    private static final int DEFAULT_FILTER_PICKER_INDEX = 5;
-    private static final int DEFAULT_MIN_DIFF_PICKER_INDEX = 5;
     private static final int DEFAULT_INTERVAL_MILLIS = 100;
     private static final double[] minDifferenceValues =
             new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
@@ -72,7 +70,9 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar minIntervalSeekBar;
     private TextView minIntervalTextValue;
 
+    //sensor data listener
     private DataListener dataListener;
+    //data storage
     private SensorDataCarrier recordedSensorData;
     private SensorDataCarrier filteredSensorData;
 
@@ -165,8 +165,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeNumberPickers() {
-        filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
-        minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
+        minDifferencePickerIndex = getDefaultMinDiffPickerIndex();
+        filterDeviationPickerIndex = getDefaultFilterDeviationPickerIndex();
         minDifferenceNumberPicker = findAndPreparePicker(R.id.minDifferencePicker,
                 minDifferenceValues,
                 (picker, oldVal, newVal) -> setMinDiffValue(newVal));
@@ -175,6 +175,14 @@ public class MainActivity extends AppCompatActivity {
                 (picker, oldVal, newVal) -> setFilterValue(newVal));
         updateMinDiffNumberPickerView();
         updateFilterDeviationNumberPickerView();
+    }
+
+    private int getDefaultMinDiffPickerIndex() {
+        return minDifferenceValues.length / 2;
+    }
+
+    private int getDefaultFilterDeviationPickerIndex() {
+        return filterDeviationValues.length / 2;
     }
 
     private NumberPicker findAndPreparePicker(@IdRes int resId, double[] pickerValues,
@@ -309,8 +317,8 @@ public class MainActivity extends AppCompatActivity {
         isRecording = false;
         //count impacts
         intervalMillis = DEFAULT_INTERVAL_MILLIS;
-        minDifferencePickerIndex = DEFAULT_MIN_DIFF_PICKER_INDEX;
-        filterDeviationPickerIndex = DEFAULT_FILTER_PICKER_INDEX;
+        minDifferencePickerIndex = getDefaultMinDiffPickerIndex();
+        filterDeviationPickerIndex = getDefaultFilterDeviationPickerIndex();
         impacts = 0;
         previousImpactTimestamp = 0;
         Measurement.resetId();
