@@ -15,7 +15,9 @@ import java.util.Locale;
 @SuppressWarnings({"FieldCanBeLocal", "Convert2Lambda"})
 public class ConsoleViewImpl implements ConsoleView {
     private final int CONSOLE_LINE_CHARS_LIMIT = 43210;
+    @NonNull
     private final LinearLayout linearLayout;
+    @NonNull
     private final TextView consoleLineView;
 
     public ConsoleViewImpl(@NonNull LinearLayout linearLayout, @NonNull ScrollView scrollView) {

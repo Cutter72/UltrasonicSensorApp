@@ -10,8 +10,10 @@ import com.balsikandar.crashreporter.CrashReporter;
 
 public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
     private static ConsoleViewLogger instance;
-    private Activity activity;
-    private ConsoleView consoleView;
+    @NonNull
+    private final Activity activity;
+    @NonNull
+    private final ConsoleView consoleView;
 
     public ConsoleViewLoggerImpl(@NonNull Activity activity, @NonNull ConsoleView consoleView) {
         this.activity = activity;
@@ -21,7 +23,7 @@ public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
     public static synchronized ConsoleViewLogger getInstance() {
         if (instance == null) {
             throw new RuntimeException("Logger not initialized! Use method " +
-                    "LogWrapper#initializeLogger(@NonNull ConsoleViewImpl consoleView) first!");
+                    "LogWrapper.initializeLogger(@NonNull ConsoleViewImpl consoleView) first!");
         }
         return instance;
     }
