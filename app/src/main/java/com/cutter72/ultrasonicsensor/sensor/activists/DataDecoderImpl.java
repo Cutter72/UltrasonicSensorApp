@@ -13,8 +13,9 @@ import java.util.List;
 @SuppressWarnings("FieldCanBeLocal")
 public class DataDecoderImpl implements DataDecoder {
     private final double CENTIMETERS_UNIT_FACTOR = 0.00859536; // 1 sensor unit = 0.00859536 cm from ToughSonic Sensor 12 datasheet
-    private final int NUL = 0; // no data
-    private final int CR = 13; // Carriage Return, end of data sequence
+    private final int ASCII_NUL = 0; // no data
+    private final int ASCII_CR = 13; // Carriage Return, end of data sequence
+    private final int ASCII_ZERO = 48; // 0
     private final int MANTISSA_BASE_POWER_0 = 1;
     private final int MANTISSA_BASE_POWER_1 = 10;
     private final int MANTISSA_BASE_POWER_2 = 100;
@@ -27,8 +28,8 @@ public class DataDecoderImpl implements DataDecoder {
         List<Measurement> measurements = new ArrayList<>();
         List<Integer> rawSensorUnitsBuffer = new ArrayList<>();
         for (byte b : rawDataFromSensor) {
-            if (b != NUL) {
-                if (b == CR) {
+            if (b != ASCII_NUL) {
+                if (b == ASCII_CR) {
                     if (rawSensorUnitsBuffer.size() == 5) {
                         Measurement measurement = decodeMeasurement(rawSensorUnitsBuffer);
                         measurements.add(measurement);
@@ -68,6 +69,6 @@ public class DataDecoderImpl implements DataDecoder {
 
     private int decodeDigit(byte b) {
         System.out.println("decodeDigit");
-        return b - 48;
+        return b - ASCII_ZERO;
     }
 }

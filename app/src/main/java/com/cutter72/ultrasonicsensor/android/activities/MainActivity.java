@@ -46,6 +46,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNAL_COUNTER_RESET_VALUE;
@@ -54,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int REQUEST_SAF = 1234;
     private static final int IMPACTS_DEFAULT = 0;
+    public static final int MEASUREMENTS_IN_ONE_LINE = 18;
 
     //states
     private boolean isRecording;
@@ -78,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
     //sensor data listener
     private DataListener dataListener;
     //data storage
+    private SensorDataCarrier measurements;
     private SensorDataCarrier recordedMeasurements;
     private SensorDataCarrier filteredMeasurements;
 
@@ -234,16 +237,20 @@ public class MainActivity extends AppCompatActivity {
             boolean isDataNotEmpty = dataSize > 0;
             if (isDataNotEmpty) {
                 measurementsReceived += dataSize;
+//                measurements.addData(data);
                 if (isRecording) {
                     recordedMeasurements.addData(data);
                     filteredMeasurements.addData(dataFilter.filterByMedian(data, getFilterDeviationValue()));
                 }
+//                if (measurements.size() % MEASUREMENTS_IN_ONE_LINE == 0) {
                 runOnUiThread(() -> {
+//                        printMeasurements(measurements.getLastMeasurements(MEASUREMENTS_IN_ONE_LINE));
                     printMeasurements(data);
                     updateMeasurementCounterView();
                     updateRecordedMeasurementCounterView();
                     updateFilteredMeasurementCounterView();
                 });
+//                }
             } else {
                 printNoSignalInfo();
             }
@@ -255,6 +262,10 @@ public class MainActivity extends AppCompatActivity {
             log.d(TAG, Arrays.toString(data.getRawData()));
         }
         log.i(TAG, Arrays.toString(data.getRawMeasurements().toArray()));
+    }
+
+    private void printMeasurements(List<Measurement> measurements) {
+        log.i(TAG, Arrays.toString(measurements.toArray()));
     }
 
     private void printNoSignalInfo() {
@@ -337,6 +348,7 @@ public class MainActivity extends AppCompatActivity {
         isRawDataLogEnabled = false;
         isRecording = false;
         measurementsReceived = 0;
+        measurements = new SensorDataCarrierImpl();
         recordedMeasurements = new SensorDataCarrierImpl();
         filteredMeasurements = new SensorDataCarrierImpl();
         //count impacts

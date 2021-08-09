@@ -17,21 +17,24 @@ import java.io.IOException;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class SensorConnectionImpl implements SensorConnection {
-    // RS-232 connection params
     private final static String TAG = SensorConnectionImpl.class.getSimpleName();
+    private final ConsoleViewLogger log;
+
+    // RS-232 connection params
     public final static int DEFAULT_BUFFER_TIME_OUT_MILLIS = 100;
     public static final int NO_SIGNAL_COUNTER_RESET_VALUE = 1;
     public static final int NO_SIGNAL_COUNTER_INITIAL_VALUE = 0;
-    private final int DEFAULT_BUFFER_SIZE = 99;
+    public static final int NO_SIGNAL_MODULO = 18;
+    private final int DEFAULT_BUFFER_SIZE = Math.min(DEFAULT_BUFFER_TIME_OUT_MILLIS * 3, 300); // max is ~300
     private final int DEFAULT_BAUD_RATE = 9600;
     private final int DEFAULT_DATA_BITS = 8;
+
     // usb device params
     private final String DEFAULT_MANUFACTURER_NAME = "FTDI";
     private final String DEFAULT_PRODUCT_NAME = "FT232R USB UART";
 
     // connection objects
     private final UsbManager usbManager;
-    private final ConsoleViewLogger log;
     private UsbSerialDriver sensorUsbDeviceDriver;
     private UsbDevice sensorUsbDevice;
     private UsbDeviceConnection sensorUsbDeviceConnection;
@@ -162,7 +165,7 @@ public class SensorConnectionImpl implements SensorConnection {
                     sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
                     data.addRawData(buffer);
                     if (data.size() < 1) {
-                        if (noSignalCounter % 10 == 0) {
+                        if (noSignalCounter % NO_SIGNAL_MODULO == 0) {
                             noSignalCounter = NO_SIGNAL_COUNTER_RESET_VALUE;
                         } else {
                             noSignalCounter++;
