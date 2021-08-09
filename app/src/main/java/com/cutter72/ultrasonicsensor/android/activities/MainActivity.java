@@ -57,9 +57,9 @@ public class MainActivity extends AppCompatActivity {
 
     //layout
     private static final int DEFAULT_INTERVAL_MILLIS = 100;
-    private static final double[] minDifferenceValues =
+    private static final double[] MIN_DIFFERENCE_VALUES =
             new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
-    private static final double[] filterDeviationValues =
+    private static final double[] FILTER_DEVIATION_VALUES =
             new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
     @ColorInt
     private int defaultBtnBackgroundColor;
@@ -168,21 +168,21 @@ public class MainActivity extends AppCompatActivity {
         minDifferencePickerIndex = getDefaultMinDiffPickerIndex();
         filterDeviationPickerIndex = getDefaultFilterDeviationPickerIndex();
         minDifferenceNumberPicker = findAndPreparePicker(R.id.minDifferencePicker,
-                minDifferenceValues,
+                MIN_DIFFERENCE_VALUES,
                 (picker, oldVal, newVal) -> setMinDiffValue(newVal));
         filterDeviationNumberPicker = findAndPreparePicker(R.id.filterDeviationPicker,
-                filterDeviationValues,
+                FILTER_DEVIATION_VALUES,
                 (picker, oldVal, newVal) -> setFilterValue(newVal));
         updateMinDiffNumberPickerView();
         updateFilterDeviationNumberPickerView();
     }
 
     private int getDefaultMinDiffPickerIndex() {
-        return minDifferenceValues.length / 2;
+        return MIN_DIFFERENCE_VALUES.length / 2;
     }
 
     private int getDefaultFilterDeviationPickerIndex() {
-        return filterDeviationValues.length / 2;
+        return FILTER_DEVIATION_VALUES.length / 2;
     }
 
     private NumberPicker findAndPreparePicker(@IdRes int resId, double[] pickerValues,
@@ -234,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
             if (isRecording) {
                 recordedSensorData.addData(data);
                 SensorDataCarrier filteredData = new DataFilterImpl()
-                        .filterByMedian(data, filterDeviationValues[filterDeviationPickerIndex]);
+                        .filterByMedian(data, FILTER_DEVIATION_VALUES[filterDeviationPickerIndex]);
                 filteredSensorData.addData(filteredData);
             }
             if (data.size() > 0) {
@@ -406,8 +406,8 @@ public class MainActivity extends AppCompatActivity {
                 impacts,
                 recordedSensorData.size(),
                 intervalMillis,
-                minDifferenceValues[minDifferencePickerIndex],
-                filterDeviationValues[filterDeviationPickerIndex]));
+                MIN_DIFFERENCE_VALUES[minDifferencePickerIndex],
+                FILTER_DEVIATION_VALUES[filterDeviationPickerIndex]));
         filesManager.writeToFile(outputFile, prepareCsvDataContent());
         log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", outputFile.getAbsolutePath()));
     }
