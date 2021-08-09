@@ -31,6 +31,7 @@ import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataFilter;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataFilterImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
@@ -230,12 +231,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeSensorDataListener() {
         SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE));
+        DataFilter dataFilter = new DataFilterImpl();
         dataListener = new DataListenerImpl(sensorConnection, data -> {
             if (isRecording) {
                 recordedSensorData.addData(data);
-                SensorDataCarrier filteredData = new DataFilterImpl()
-                        .filterByMedian(data, FILTER_DEVIATION_VALUES[filterDeviationPickerIndex]);
-                filteredSensorData.addData(filteredData);
+                filteredSensorData.addData(dataFilter.filterByMedian(data, FILTER_DEVIATION_VALUES[filterDeviationPickerIndex]));
             }
             if (data.size() > 0) {
                 runOnUiThread(() -> printMeasurements(data));
