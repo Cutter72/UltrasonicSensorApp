@@ -91,6 +91,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/impacts"
+        app:layout_constraintBottom_toTopOf="@+id/measurementsLabel"
         app:layout_constraintEnd_toStartOf="@+id/impactsCounter"
         app:layout_constraintStart_toEndOf="@+id/scrollView"
         app:layout_constraintTop_toBottomOf="@+id/btnRecording" />
@@ -100,7 +101,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:gravity="right"
+        android:gravity="end"
         android:minWidth="33dp"
         android:text="@string/zero"
         app:layout_constraintBottom_toBottomOf="@+id/impactsLabel"
@@ -113,6 +114,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/measurements"
+        app:layout_constraintBottom_toTopOf="@+id/recordedMeasurementsLabel"
         app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
         app:layout_constraintStart_toEndOf="@+id/scrollView"
         app:layout_constraintTop_toBottomOf="@+id/impactsLabel" />
@@ -121,7 +123,7 @@
         android:id="@+id/measurementsCounter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="right"
+        android:gravity="end"
         android:minWidth="33dp"
         android:text="@string/zero"
         app:layout_constraintBottom_toBottomOf="@+id/measurementsLabel"
@@ -134,6 +136,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/recorded_measurements"
+        app:layout_constraintBottom_toTopOf="@+id/filteredMeasurementsLabel"
         app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/scrollView"
@@ -143,7 +146,7 @@
         android:id="@+id/recordedMeasurementsCounter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="right"
+        android:gravity="end"
         android:minWidth="33dp"
         android:text="@string/zero"
         app:layout_constraintBottom_toBottomOf="@+id/recordedMeasurementsLabel"
@@ -158,6 +161,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/filtered_measurements"
+        app:layout_constraintBottom_toTopOf="@+id/filterDeviationLabel"
         app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toEndOf="@+id/scrollView"
@@ -168,7 +172,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="18dp"
-        android:gravity="right"
+        android:gravity="end"
         android:minWidth="33dp"
         android:text="@string/zero"
         app:layout_constraintBottom_toBottomOf="@+id/filteredMeasurementsLabel"
@@ -183,21 +187,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
         android:text="@string/min_time_interval"
         android:textColor="#54000000"
-        app:layout_constraintBottom_toBottomOf="@+id/openConnection"
         app:layout_constraintEnd_toStartOf="@+id/minIntervalTextValue"
         app:layout_constraintStart_toEndOf="@+id/openConnection"
-        app:layout_constraintTop_toTopOf="@+id/openConnection" />
+        app:layout_constraintTop_toBottomOf="@+id/clearConsole" />
 
     <TextView
         android:id="@+id/minIntervalTextValue"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:gravity="left"
+        android:gravity="start"
         android:minWidth="33dp"
         android:text="@string/zero"
-        app:layout_constraintBottom_toBottomOf="@+id/bufferTimeOutLabel"
         app:layout_constraintEnd_toStartOf="@+id/btnRecording"
         app:layout_constraintStart_toEndOf="@+id/bufferTimeOutLabel"
         app:layout_constraintTop_toTopOf="@+id/bufferTimeOutLabel" />
@@ -206,20 +209,20 @@
         android:id="@+id/minDifferenceLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="5dp"
-        android:layout_marginBottom="8dp"
         android:text="@string/min_diff"
         app:layout_constraintBottom_toTopOf="@+id/minDifferencePicker"
         app:layout_constraintEnd_toEndOf="@+id/minDifferencePicker"
-        app:layout_constraintStart_toStartOf="@+id/minDifferencePicker" />
+        app:layout_constraintStart_toStartOf="@+id/minDifferencePicker"
+        app:layout_constraintTop_toBottomOf="@+id/filteredMeasurementsLabel" />
 
     <NumberPicker
         android:id="@+id/minDifferencePicker"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:background="@color/teal_200"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/filterDeviationLabel" />
 
     <TextView
         android:id="@+id/filterDeviationLabel"
@@ -228,16 +231,18 @@
         android:text="@string/filter_deviation"
         app:layout_constraintBottom_toTopOf="@+id/filterDeviationPicker"
         app:layout_constraintEnd_toEndOf="@+id/filterDeviationPicker"
-        app:layout_constraintStart_toStartOf="@+id/filterDeviationPicker" />
+        app:layout_constraintStart_toStartOf="@+id/filterDeviationPicker"
+        app:layout_constraintTop_toBottomOf="@+id/filteredMeasurementsLabel" />
 
     <NumberPicker
         android:id="@+id/filterDeviationPicker"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginEnd="8dp"
         android:background="@color/teal_200"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/minDifferencePicker" />
+        app:layout_constraintEnd_toStartOf="@+id/minDifferencePicker"
+        app:layout_constraintTop_toBottomOf="@+id/filterDeviationLabel" />
 
     <SeekBar
         android:id="@+id/minIntervalSeekBar"

@@ -14,8 +14,8 @@
     <string name="hide_raw_data">Hide raw data</string>
     <string name="save_data_to_csv">Save data to CSV</string>
     <string name="buffer_timeout">Buffer timeout [ms]</string>
-    <string name="impacts">Impacts</string>
-    <string name="min_diff">Min. DIff.</string>
+    <string name="impacts">Impacts:</string>
+    <string name="min_diff">Min. Diff.</string>
     <string name="avg_measur">Avg. Measur.</string>
     <string name="min_time_interval">Interval between impacts [ms]:</string>
     <string name="console_cleared">CONSOLE CLEARED</string>

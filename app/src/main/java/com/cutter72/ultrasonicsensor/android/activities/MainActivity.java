@@ -394,7 +394,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateRecordedMeasurementCounterView() {
-        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(recordedMeasurements.size()));
+        ((TextView) findViewById(R.id.recordedMeasurementsCounter)).setText(String.valueOf(recordedMeasurements.size()));
     }
 
     private void updateFilteredMeasurementCounterView() {
