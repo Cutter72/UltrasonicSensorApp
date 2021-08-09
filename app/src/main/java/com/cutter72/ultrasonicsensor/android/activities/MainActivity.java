@@ -1,7 +1,10 @@
 package com.cutter72.ultrasonicsensor.android.activities;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.hardware.usb.UsbManager;
@@ -52,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_SAF = 1234;
     private static final int IMPACTS_DEFAULT = 0;
 
+    private BroadcastReceiver receiver;
+
     //states
     private boolean isRecording = false;
     private boolean isRawDataLogEnabled = false;
@@ -90,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initializeLayout();
+        initializeBroadcastReceiver();
         checkPermissions();
     }
 
@@ -256,6 +262,26 @@ public class MainActivity extends AppCompatActivity {
         if (SensorConnectionImpl.noSignalCounter == NO_SIGNAL_COUNTER_RESET_VALUE) {
             log.w(TAG, "NO SIGNAL");
         }
+    }
+
+    private void initializeBroadcastReceiver() {
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                // When discovery finds a device
+                if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                    log.i(TAG, "USB DEVICE ATTACHED");
+                }
+                if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                    log.i(TAG, "USB DEVICE DETACHED");
+                }
+            }
+        };
+        IntentFilter usbDeviceAttached = new IntentFilter(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(receiver, usbDeviceAttached);
+        IntentFilter usbDeviceDetached = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        registerReceiver(receiver, usbDeviceDetached);
     }
 
     private void checkPermissions() {
