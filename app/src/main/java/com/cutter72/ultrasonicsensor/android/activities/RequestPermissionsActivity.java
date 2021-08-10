@@ -14,13 +14,13 @@ import java.util.Arrays;
 public class RequestPermissionsActivity extends AppCompatActivity {
     public static final String PERMISSION_TYPE = "PERMISSION_TYPE";
     private static final int INITIAL_PERMISSION_ID = 1234;
+    private String permissionType;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_request_permissions);
-        String permissionType = getIntent().getStringExtra(PERMISSION_TYPE);
-        System.out.println("PERMISSION_TYPE: " + permissionType);
+        permissionType = getIntent().getStringExtra(PERMISSION_TYPE);
         ActivityCompat.requestPermissions(
                 this,
                 new String[]{permissionType},
@@ -33,9 +33,9 @@ public class RequestPermissionsActivity extends AppCompatActivity {
         System.out.println("onRequestPermissionsResult");
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             // Granted.
-            System.out.println("Permissions granted: " + Arrays.toString(permissions));
+            System.out.println("Permissions granted for: " + Arrays.toString(permissions));
         } else {
-            System.out.println("Permissions denied!");
+            System.out.println("Permissions denied for: " + permissionType);
         }
         onBackPressed();
     }
