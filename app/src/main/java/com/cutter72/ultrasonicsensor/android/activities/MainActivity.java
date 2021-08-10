@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.NumberPicker;
 import android.widget.SeekBar;
@@ -179,11 +180,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int getDefaultMinDiffPickerIndex() {
-        return MIN_DIFFERENCE_VALUES.length / 2;
+        return MIN_DIFFERENCE_VALUES.length / 10;
     }
 
     private int getDefaultFilterDeviationPickerIndex() {
-        return FILTER_DEVIATION_VALUES.length / 2;
+        return FILTER_DEVIATION_VALUES.length / 10;
     }
 
     private NumberPicker findAndPreparePicker(@IdRes int resId, double[] pickerValues,
@@ -459,9 +460,45 @@ public class MainActivity extends AppCompatActivity {
 
     private void actionCreateDocument() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
-                .setType("text/plain")
+                .setType(getMimeTypeFromExtension("csv")) // MIME types -> https://en.wikipedia.org/wiki/Media_type
                 .addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(intent, REQUEST_SAF);
+    }
+
+    private String getMimeTypeFromExtension(String fileExtension) {
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension.toLowerCase());
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == REQUEST_SAF) {
+            if (resultCode == RESULT_OK && data != null) {
+                Uri uri = data.getData();
+                log.e(TAG, "Uri from result: " + uri.toString());
+                try {
+                    OutputStream outputStream = getContentResolver().openOutputStream(uri);
+                    outputStream.write(prepareCsvDataContent().getBytes());
+                    log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", uri.getPath()));
+                } catch (IOException e) {
+                    log.logException(TAG, e);
+                }
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    @NonNull
+    private String prepareCsvDataContent() {
+        StringBuilder sb = new StringBuilder();
+        for (Measurement measurement : recordedMeasurements.getRawMeasurements()) {
+            sb.append(String.format(Locale.ROOT, "%d,%.2f,%d%n",
+                    measurement.getId(),
+                    measurement.getDistanceCentimeters(),
+                    measurement.getTime().getTime()
+            ));
+        }
+        return sb.toString();
     }
 
     private void createDataFile() {
@@ -484,38 +521,6 @@ public class MainActivity extends AppCompatActivity {
 
     private double getFilterDeviationValue() {
         return FILTER_DEVIATION_VALUES[filterDeviationPickerIndex];
-    }
-
-    @NonNull
-    private String prepareCsvDataContent() {
-        StringBuilder sb = new StringBuilder();
-        for (Measurement measurement : recordedMeasurements.getRawMeasurements()) {
-            sb.append(String.format(Locale.getDefault(), "%d,%.2f,%d%n",
-                    measurement.getId(),
-                    measurement.getDistanceCentimeters(),
-                    measurement.getTime().getTime()
-            ));
-        }
-        return sb.toString();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == REQUEST_SAF) {
-            if (resultCode == RESULT_OK && data != null) {
-                Uri uri = data.getData();
-                log.e(TAG, "Uri from result: " + uri.toString());
-                try {
-                    OutputStream outputStream = getContentResolver().openOutputStream(uri);
-                    outputStream.write(prepareCsvDataContent().getBytes());
-                    log.i(TAG, String.format("MEASUREMENTS DATA EXPORTED TO: %s", uri.getPath()));
-                } catch (IOException e) {
-                    log.logException(TAG, e);
-                }
-            }
-        } else {
-            super.onActivityResult(requestCode, resultCode, data);
-        }
     }
 
     //    private boolean isImpactFound() {
