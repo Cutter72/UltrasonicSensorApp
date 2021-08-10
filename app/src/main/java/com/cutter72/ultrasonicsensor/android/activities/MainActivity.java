@@ -312,6 +312,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickOpenConnection(View view) {
+        toggleOpenConnectionBtn();
+    }
+
+    private void toggleOpenConnectionBtn() {
         if (dataListener.isListening()) {
             dataListener.stopListening();
         } else {
@@ -322,6 +326,10 @@ public class MainActivity extends AppCompatActivity {
 
     public void onClickRecording(View view) {
         log.v(TAG, "---onClickRecording");
+        toggleRecordingBtn();
+    }
+
+    private void toggleRecordingBtn() {
         isRecording = !isRecording;
         updateRecordingBtn();
     }
@@ -447,9 +455,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickSaveDataToCsv(View view) {
+        if (isRecording) {
+            toggleRecordingBtn();
+        }
         if (recordedMeasurements.size() == 0) {
             log.i(TAG, "NO MEASUREMENTS RECORDED. DATA NOT SAVED.");
         } else {
+            if (dataListener.isListening()) {
+                toggleOpenConnectionBtn();
+            }
             if (checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                 actionCreateDocument();
             } else {
