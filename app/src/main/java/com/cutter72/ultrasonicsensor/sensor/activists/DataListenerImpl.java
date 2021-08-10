@@ -30,15 +30,11 @@ public class DataListenerImpl implements DataListener {
             executorService.submit(() -> {
                 sensorConnection.clearHardwareInputOutputBuffers();
                 while (isListening) {
-                    long initialTime = System.currentTimeMillis();
                     if (waitForData()) {
                         try {
                             SensorDataCarrier receivedData = sensorConnection.readData();
-                            long finalTime = System.currentTimeMillis();
-                            long measurementsTimeSpan = finalTime - initialTime;
                             new MeasurementsTimeApproximatorImpl()
-                                    .approximate(receivedData.getRawMeasurements(),
-                                            measurementsTimeSpan);
+                                    .approximate(receivedData.getRawMeasurements());
                             dataCallback.onDataReceive(receivedData);
                         } catch (Exception e) {
                             e.printStackTrace();
