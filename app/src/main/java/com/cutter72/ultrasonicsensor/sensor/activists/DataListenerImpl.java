@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
+import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,9 +30,16 @@ public class DataListenerImpl implements DataListener {
             executorService.submit(() -> {
                 sensorConnection.clearHardwareInputOutputBuffers();
                 while (isListening) {
+                    long initialTime = System.currentTimeMillis();
                     if (waitForData()) {
                         try {
-                            dataCallback.onDataReceive(sensorConnection.readData());
+                            SensorDataCarrier receivedData = sensorConnection.readData();
+                            long finalTime = System.currentTimeMillis();
+                            long measurementsTimeSpan = finalTime - initialTime;
+                            new MeasurementsTimeApproximatorImpl()
+                                    .approximate(receivedData.getRawMeasurements(),
+                                            measurementsTimeSpan);
+                            dataCallback.onDataReceive(receivedData);
                         } catch (Exception e) {
                             e.printStackTrace();
                             CrashReporter.logException(e);
