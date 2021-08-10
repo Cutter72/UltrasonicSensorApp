@@ -17,11 +17,11 @@ import java.io.IOException;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class SensorConnectionImpl implements SensorConnection {
-    private final static String TAG = SensorConnectionImpl.class.getSimpleName();
+    private static final String TAG = SensorConnectionImpl.class.getSimpleName();
     private final ConsoleViewLogger log;
 
     // RS-232 connection params
-    public final static int DEFAULT_BUFFER_TIME_OUT_MILLIS = 100;
+    public static final int DEFAULT_BUFFER_TIME_OUT_MILLIS = 150;
     public static final int NO_SIGNAL_COUNTER_RESET_VALUE = 1;
     public static final int NO_SIGNAL_COUNTER_INITIAL_VALUE = 0;
     public static final int NO_SIGNAL_MODULO = 18;
@@ -166,11 +166,7 @@ public class SensorConnectionImpl implements SensorConnection {
                     sensorUsbSerialPort.read(buffer, DEFAULT_BUFFER_TIME_OUT_MILLIS);
                     data.addRawData(buffer);
                     if (data.size() < 1) {
-                        if (noSignalCounter % NO_SIGNAL_MODULO == 0) {
-                            noSignalCounter = NO_SIGNAL_COUNTER_RESET_VALUE;
-                        } else {
-                            noSignalCounter++;
-                        }
+                        incrementNoSignalCounter();
                     }
                 } catch (IOException | NullPointerException e) {
                     log.logException(TAG, e);
@@ -182,6 +178,14 @@ public class SensorConnectionImpl implements SensorConnection {
             log.i(TAG, "sensorUsbSerialPort == null");
         }
         return data;
+    }
+
+    private void incrementNoSignalCounter() {
+        if (noSignalCounter % NO_SIGNAL_MODULO == 0) {
+            noSignalCounter = NO_SIGNAL_COUNTER_RESET_VALUE;
+        } else {
+            noSignalCounter++;
+        }
     }
 
     @Override
