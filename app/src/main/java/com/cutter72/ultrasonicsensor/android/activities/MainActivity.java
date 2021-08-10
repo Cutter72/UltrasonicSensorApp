@@ -509,7 +509,7 @@ public class MainActivity extends AppCompatActivity {
             sb.append(String.format(Locale.ROOT, "%d,%.2f,%d%n",
                     measurement.getId(),
                     measurement.getDistanceCentimeters(),
-                    measurement.getTime().getTime()
+                    measurement.getDate().getTime()
             ));
         }
         return sb.toString();

@@ -13,12 +13,15 @@ public class MeasurementsTimeApproximatorImpl implements MeasurementsTimeApproxi
     public void approximate(@NonNull List<Measurement> measurements, long timeSpan) {
         int measurementsSize = measurements.size();
         if (measurementsSize > 1) {
-            long timeDelta = timeSpan / (measurements.size() - 1);
-            Measurement firstMeasurement = measurements.get(0);
-            for (int i = 0; i < measurementsSize; i++) {
+            long timeDelta = timeSpan / (measurementsSize - 1);
+            long firstMeasurementTimestamp = measurements.get(0).getDate().getTime();
+            Measurement lastMeasurement = measurements.get(measurementsSize - 1);
+            long lastMeasurementsTimestamp = firstMeasurementTimestamp + timeSpan;
+            lastMeasurement.setDate(new Date(lastMeasurementsTimestamp));
+            for (int i = 0; i < measurementsSize - 1; i++) {
                 Measurement measurement = measurements.get(i);
-                long newTimeStamp = firstMeasurement.getTime().getTime() + i * timeDelta;
-                measurement.setTime(new Date(newTimeStamp));
+                long newTimeStamp = firstMeasurementTimestamp + i * timeDelta;
+                measurement.setDate(new Date(newTimeStamp));
             }
         }
     }

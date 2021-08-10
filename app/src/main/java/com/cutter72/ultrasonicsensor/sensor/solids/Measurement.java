@@ -10,11 +10,11 @@ public class Measurement implements Comparable<Measurement> {
     public static int nextId = INITIAL_ID;
     private final int id;
     private final double distanceCentimeters;
-    private Date time;
+    private Date date;
 
     public Measurement(double distanceCentimeters) {
         this.distanceCentimeters = distanceCentimeters;
-        this.time = new Date();
+        this.date = new Date();
         this.id = nextId;
         nextId++;
     }
@@ -31,12 +31,12 @@ public class Measurement implements Comparable<Measurement> {
         return distanceCentimeters;
     }
 
-    public Date getTime() {
-        return time;
+    public Date getDate() {
+        return date;
     }
 
-    public void setTime(Date time) {
-        this.time = time;
+    public void setDate(Date date) {
+        this.date = date;
     }
 
     @Override
@@ -51,12 +51,12 @@ public class Measurement implements Comparable<Measurement> {
         Measurement that = (Measurement) o;
         return id == that.id &&
                 Double.compare(that.distanceCentimeters, distanceCentimeters) == 0 &&
-                Objects.equals(time, that.time);
+                Objects.equals(date, that.date);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, distanceCentimeters, time);
+        return Objects.hash(id, distanceCentimeters, date);
     }
 
     @NonNull
