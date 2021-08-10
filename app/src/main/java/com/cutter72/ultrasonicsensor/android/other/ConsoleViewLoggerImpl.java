@@ -9,6 +9,12 @@ import androidx.annotation.NonNull;
 import com.balsikandar.crashreporter.CrashReporter;
 
 public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
+    public static ConsoleViewLogger getInstance() {
+        return instance;
+    }
+
+    private static ConsoleViewLogger instance;
+
     @NonNull
     private final Activity activity;
     @NonNull
@@ -17,6 +23,7 @@ public class ConsoleViewLoggerImpl implements ConsoleViewLogger {
     public ConsoleViewLoggerImpl(@NonNull Activity activity, @NonNull ConsoleView consoleView) {
         this.activity = activity;
         this.consoleView = consoleView;
+        instance = this;
     }
 
     @Override

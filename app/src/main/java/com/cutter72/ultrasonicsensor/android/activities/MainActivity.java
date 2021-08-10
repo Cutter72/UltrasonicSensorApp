@@ -53,6 +53,7 @@ import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNA
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
+    private ConsoleViewLogger log;
     private static final int REQUEST_SAF = 1234;
     private static final int IMPACTS_DEFAULT = 0;
     public static final int MEASUREMENTS_IN_ONE_LINE = 18;
@@ -70,7 +71,6 @@ public class MainActivity extends AppCompatActivity {
     @ColorInt
     private int defaultBtnBackgroundColor;
     private int measurementsReceived;
-    private ConsoleViewLogger log;
     private ConsoleView consoleView;
     private NumberPicker minDifferenceNumberPicker;
     private NumberPicker filterDeviationNumberPicker;

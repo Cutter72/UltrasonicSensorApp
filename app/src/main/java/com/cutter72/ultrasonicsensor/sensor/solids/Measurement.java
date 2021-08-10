@@ -10,7 +10,7 @@ public class Measurement implements Comparable<Measurement> {
     public static int nextId = INITIAL_ID;
     private final int id;
     private final double distanceCentimeters;
-    private final Date time;
+    private Date time;
 
     public Measurement(double distanceCentimeters) {
         this.distanceCentimeters = distanceCentimeters;
@@ -33,6 +33,10 @@ public class Measurement implements Comparable<Measurement> {
 
     public Date getTime() {
         return time;
+    }
+
+    public void setTime(Date time) {
+        this.time = time;
     }
 
     @Override

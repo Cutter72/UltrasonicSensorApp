@@ -25,7 +25,8 @@ public class SensorConnectionImpl implements SensorConnection {
     public static final int NO_SIGNAL_COUNTER_RESET_VALUE = 1;
     public static final int NO_SIGNAL_COUNTER_INITIAL_VALUE = 0;
     public static final int NO_SIGNAL_MODULO = 18;
-    private final int DEFAULT_BUFFER_SIZE = Math.min(DEFAULT_BUFFER_TIME_OUT_MILLIS * 3, 300); // max is ~300
+    @SuppressWarnings("ConstantConditions")
+    public static final int DEFAULT_BUFFER_SIZE = Math.max(Math.min(DEFAULT_BUFFER_TIME_OUT_MILLIS * 3, 300), 15); // min is 15, max is 300
     private final int DEFAULT_BAUD_RATE = 9600;
     private final int DEFAULT_DATA_BITS = 8;
 
