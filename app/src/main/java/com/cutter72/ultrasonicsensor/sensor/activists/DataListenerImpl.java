@@ -34,7 +34,8 @@ public class DataListenerImpl implements DataListener {
                         try {
                             SensorDataCarrier receivedData = sensorConnection.readData();
                             new MeasurementsTimeApproximatorImpl()
-                                    .approximate(receivedData.getRawMeasurements());
+                                    .approximate(receivedData.getRawMeasurements(),
+                                            SensorConnectionImpl.DEFAULT_BUFFER_TIME_OUT_MILLIS);
                             dataCallback.onDataReceive(receivedData);
                         } catch (Exception e) {
                             e.printStackTrace();
