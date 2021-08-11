@@ -18,7 +18,7 @@ import java.util.Random;
 import static org.junit.Assert.assertEquals;
 
 public class DataFilterImplTest {
-    public static final double MAX_DEVIATION_FROM_MEDIAN_IN_CENTIMETERS = 0.4;
+    private final double MAX_DEVIATION_FROM_MEDIAN_IN_CENTIMETERS = 0.4;
     private final int MEASUREMENTS_QUANTITY = 100;
 
     @Test
