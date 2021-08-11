@@ -21,8 +21,7 @@ public interface MeasurementsTimeApproximator {
      * subsequent measurements. Every measurement after first has {@link Measurement#date} set to
      * {@code new Date(BASE + i * TIME_DELTA)} where {@code i} is subsequent measurement number and
      * {@code TIME_DELTA} is a {@param timeSpanToDistribute} divided by number of measurements - 1.
-     * The last measurement time field is set to
-     * {@code BASE + }{@param timeSpanToDistribute}.
+     * The last measurement time field is set to {@code new Date(BASE + }{@param timeSpanToDistribute}{@code )}.
      *
      * @param measurements         list of {@link Measurement}s to adjust their times
      * @param timeSpanToDistribute time span to distribute over given measurements in milliseconds
