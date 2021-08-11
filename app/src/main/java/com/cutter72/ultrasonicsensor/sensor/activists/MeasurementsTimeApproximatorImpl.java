@@ -1,5 +1,6 @@
 package com.cutter72.ultrasonicsensor.sensor.activists;
 
+import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
@@ -10,7 +11,7 @@ import java.util.List;
 public class MeasurementsTimeApproximatorImpl implements MeasurementsTimeApproximator {
 
     @Override
-    public void approximate(@NonNull List<Measurement> measurements, int timeSpanToDistribute) {
+    public void approximate(@NonNull List<Measurement> measurements, @IntRange(from = 0) int timeSpanToDistribute) {
         int measurementsSize = measurements.size();
         if (measurementsSize > 1) {
             final double TIME_DELTA = timeSpanToDistribute / (measurementsSize - 1.0);

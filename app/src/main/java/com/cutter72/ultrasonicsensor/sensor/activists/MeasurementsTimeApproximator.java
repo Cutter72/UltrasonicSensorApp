@@ -1,5 +1,6 @@
 package com.cutter72.ultrasonicsensor.sensor.activists;
 
+import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
@@ -26,5 +27,5 @@ public interface MeasurementsTimeApproximator {
      * @param measurements         list of {@link Measurement}s to adjust their times
      * @param timeSpanToDistribute time span to distribute over given measurements in milliseconds
      */
-    void approximate(@NonNull List<Measurement> measurements, int timeSpanToDistribute);
+    void approximate(@NonNull List<Measurement> measurements, @IntRange(from = 0) int timeSpanToDistribute);
 }
