@@ -35,8 +35,9 @@ public class Measurement implements Comparable<Measurement> {
         return date;
     }
 
-    public void setDate(Date date) {
+    public Measurement setDate(Date date) {
         this.date = date;
+        return this;
     }
 
     @Override

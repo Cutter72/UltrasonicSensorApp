@@ -20,7 +20,7 @@ public class MeasurementsTimeApproximatorImpl implements MeasurementsTimeApproxi
             lastMeasurement.setDate(new Date(lastMeasurementsTimestamp));
             for (int i = 0; i < measurementsSize - 1; i++) {
                 Measurement measurement = measurements.get(i);
-                long newTimeStamp = (long) (firstMeasurementTimestamp + i * TIME_DELTA);
+                long newTimeStamp = (long) Math.round(firstMeasurementTimestamp + i * TIME_DELTA);
                 measurement.setDate(new Date(newTimeStamp));
             }
         }
