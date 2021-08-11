@@ -16,6 +16,7 @@ public class DataDecoderImpl implements DataDecoder {
     private final int ASCII_NUL = 0; // no data
     private final int ASCII_CR = 13; // Carriage Return, end of data sequence
     private final int ASCII_ZERO = 48; // 0
+    private final int ASCII_NINE = 58; // 9
     private final int MANTISSA_BASE_POWER_0 = 1;
     private final int MANTISSA_BASE_POWER_1 = 10;
     private final int MANTISSA_BASE_POWER_2 = 100;
@@ -36,8 +37,10 @@ public class DataDecoderImpl implements DataDecoder {
                     }
                     rawSensorUnitsBuffer.clear();
                 } else {
-                    int digit = decodeDigit(b);
-                    rawSensorUnitsBuffer.add(digit);
+                    if (ASCII_ZERO <= b && b <= ASCII_NINE) {
+                        int digit = decodeDigit(b);
+                        rawSensorUnitsBuffer.add(digit);
+                    }
                 }
             } else {
                 break;
