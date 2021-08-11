@@ -14,27 +14,27 @@ import static org.junit.Assert.assertEquals;
 
 public class MeasurementsTimeApproximatorImplTest {
     private List<Measurement> data;
-    private Measurement msrmnt1;
-    private Measurement msrmnt2;
-    private Measurement msrmnt3;
-    private Measurement msrmnt4;
-    private Measurement msrmnt5;
+    private Measurement measurement0;
+    private Measurement measurement1;
+    private Measurement measurement2;
+    private Measurement measurement3;
+    private Measurement measurement4;
 
     @Before
     public void setUp() {
         //GIVEN
         data = new ArrayList<>();
         Date zeroDate = new Date(0);
-        msrmnt1 = new Measurement(0.1).setDate(zeroDate);
-        msrmnt2 = new Measurement(0.2).setDate(zeroDate);
-        msrmnt3 = new Measurement(0.3).setDate(zeroDate);
-        msrmnt4 = new Measurement(0.4).setDate(zeroDate);
-        msrmnt5 = new Measurement(0.5).setDate(zeroDate);
-        data.add(msrmnt1);
-        data.add(msrmnt2);
-        data.add(msrmnt3);
-        data.add(msrmnt4);
-        data.add(msrmnt5);
+        measurement0 = new Measurement(0.0).setDate(zeroDate);
+        measurement1 = new Measurement(0.1).setDate(zeroDate);
+        measurement2 = new Measurement(0.2).setDate(zeroDate);
+        measurement3 = new Measurement(0.3).setDate(zeroDate);
+        measurement4 = new Measurement(0.4).setDate(zeroDate);
+        data.add(measurement0);
+        data.add(measurement1);
+        data.add(measurement2);
+        data.add(measurement3);
+        data.add(measurement4);
     }
 
     @Test
@@ -44,11 +44,11 @@ public class MeasurementsTimeApproximatorImplTest {
         //WHEN
         new MeasurementsTimeApproximatorImpl().approximate(data, 1);
         //THEN
-        assertEquals(0, msrmnt1.getDate().getTime());
-        assertEquals(0, msrmnt2.getDate().getTime());
-        assertEquals(1, msrmnt3.getDate().getTime());
-        assertEquals(1, msrmnt4.getDate().getTime());
-        assertEquals(1, msrmnt5.getDate().getTime());
+        assertEquals(0, measurement0.getDate().getTime());
+        assertEquals(0, measurement1.getDate().getTime());
+        assertEquals(1, measurement2.getDate().getTime());
+        assertEquals(1, measurement3.getDate().getTime());
+        assertEquals(1, measurement4.getDate().getTime());
     }
 
     @Test
@@ -58,11 +58,11 @@ public class MeasurementsTimeApproximatorImplTest {
         //WHEN
         new MeasurementsTimeApproximatorImpl().approximate(data, 2);
         //THEN
-        assertEquals(0, msrmnt1.getDate().getTime());
-        assertEquals(1, msrmnt2.getDate().getTime());
-        assertEquals(1, msrmnt3.getDate().getTime());
-        assertEquals(2, msrmnt4.getDate().getTime());
-        assertEquals(2, msrmnt5.getDate().getTime());
+        assertEquals(0, measurement0.getDate().getTime());
+        assertEquals(1, measurement1.getDate().getTime());
+        assertEquals(1, measurement2.getDate().getTime());
+        assertEquals(2, measurement3.getDate().getTime());
+        assertEquals(2, measurement4.getDate().getTime());
     }
 
     @Test
@@ -70,22 +70,22 @@ public class MeasurementsTimeApproximatorImplTest {
         //GIVEN
         // setUp()
         //WHEN
-        new MeasurementsTimeApproximatorImpl().approximate(Collections.singletonList(msrmnt1), 2);
+        new MeasurementsTimeApproximatorImpl().approximate(Collections.singletonList(measurement0), 2);
         //THEN
-        assertEquals(0, msrmnt1.getDate().getTime());
+        assertEquals(0, measurement0.getDate().getTime());
     }
 
     @Test
     public void approximateTwoElementList() {
         //GIVEN
         List<Measurement> twoElementList = new ArrayList<>();
-        twoElementList.add(msrmnt1);
-        twoElementList.add(msrmnt2);
+        twoElementList.add(measurement0);
+        twoElementList.add(measurement1);
         //WHEN
         new MeasurementsTimeApproximatorImpl().approximate(twoElementList, 2);
         //THEN
-        assertEquals(0, msrmnt1.getDate().getTime());
-        assertEquals(2, msrmnt2.getDate().getTime());
+        assertEquals(0, measurement0.getDate().getTime());
+        assertEquals(2, measurement1.getDate().getTime());
     }
 
     @Test
@@ -95,10 +95,10 @@ public class MeasurementsTimeApproximatorImplTest {
         //WHEN
         new MeasurementsTimeApproximatorImpl().approximate(data, 0);
         //THEN
-        assertEquals(0, msrmnt1.getDate().getTime());
-        assertEquals(0, msrmnt2.getDate().getTime());
-        assertEquals(0, msrmnt3.getDate().getTime());
-        assertEquals(0, msrmnt4.getDate().getTime());
-        assertEquals(0, msrmnt5.getDate().getTime());
+        assertEquals(0, measurement0.getDate().getTime());
+        assertEquals(0, measurement1.getDate().getTime());
+        assertEquals(0, measurement2.getDate().getTime());
+        assertEquals(0, measurement3.getDate().getTime());
+        assertEquals(0, measurement4.getDate().getTime());
     }
 }
