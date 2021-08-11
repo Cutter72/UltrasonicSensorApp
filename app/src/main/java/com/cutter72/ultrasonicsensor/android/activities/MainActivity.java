@@ -35,7 +35,6 @@ import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
-import com.cutter72.ultrasonicsensor.sensor.activists.DataFilter;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataFilterImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
@@ -227,35 +226,44 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeSensorDataListener() {
         SensorConnection sensorConnection = new SensorConnectionImpl((UsbManager) getSystemService(USB_SERVICE), log);
-        DataFilter dataFilter = new DataFilterImpl();
         dataListener = new DataListenerImpl(sensorConnection, data -> {
             int dataSize = data.size();
             boolean isDataNotEmpty = dataSize > 0;
             if (isDataNotEmpty) {
                 measurementsReceived += dataSize;
-                SensorDataCarrier filteredData = dataFilter
-                        .filterByMedian(data, getFilterDeviationValue());
+                SensorDataCarrier filteredData = filterByMedian(data);
                 filteredOutMeasurements += dataSize - filteredData.size();
                 if (isRecording) {
                     recordedMeasurements.addData(filteredData);
                 }
-                impacts += new ImpactCounterImpl()
-                        .findImpacts(filteredData.getRawMeasurements(),
-                                filteredData.getRawMeasurements().size(),
-                                minTimeIntervalMillis,
-                                getMinDifferenceValue());
-                runOnUiThread(() -> {
-                    printMeasurements(filteredData);
-                    updateImpactsCounterView();
-                    updateMeasurementCounterView();
-                    updateRecordedMeasurementCounterView();
-                    updateFilteredOutMeasurementCounterView();
-                });
-//                }
+                impacts += findImpacts(filteredData);
+                runOnUiThread(() -> updateUiWithNewData(filteredData));
             } else {
                 printNoSignalInfo();
             }
         });
+    }
+
+    @NonNull
+    private SensorDataCarrier filterByMedian(SensorDataCarrier data) {
+        return new DataFilterImpl()
+                .filterByMedian(data, getFilterDeviationValue());
+    }
+
+    private int findImpacts(SensorDataCarrier filteredData) {
+        return new ImpactCounterImpl()
+                .findImpacts(filteredData.getRawMeasurements(),
+                        filteredData.getRawMeasurements().size(),
+                        minTimeIntervalMillis,
+                        getMinDifferenceValue());
+    }
+
+    private void updateUiWithNewData(SensorDataCarrier filteredData) {
+        printMeasurements(filteredData);
+        updateFilteredOutMeasurementCounterView();
+        updateImpactsCounterView();
+        updateMeasurementCounterView();
+        updateRecordedMeasurementCounterView();
     }
 
     private void printMeasurements(SensorDataCarrier data) {
