@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class Measurement implements Comparable<Measurement> {
     public static final int INITIAL_ID = 0;
-    public static int nextId = INITIAL_ID;
+    private static int nextId = INITIAL_ID;
     private final int id;
     private final double distanceCentimeters;
     private Date date;
