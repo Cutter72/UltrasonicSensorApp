@@ -10,23 +10,41 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DataFilterImpl implements DataFilter {
-    public static final double DEFAULT_FILTER_DEVIATION = 0.5;
-    public static final double[] FILTER_VALUES = new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
 
     @NonNull
     @Override
     public SensorDataCarrier filterByMedian(@NonNull SensorDataCarrier dataToFilter, double maxDeviationFromMedianInCentimeters) {
         List<Measurement> filteredMeasurements = new ArrayList<>(dataToFilter.getRawMeasurements());
-        double median;
-        median = findMedian(filteredMeasurements);
-        for (Measurement measurement : dataToFilter.getRawMeasurements()) {
-            if (Math.abs(measurement.getDistanceCentimeters() - median) > maxDeviationFromMedianInCentimeters) {
-                filteredMeasurements.remove(measurement);
-            }
-        }
+        filterOutZeroMeasurements(filteredMeasurements);
+        filterOutByDeviationFromMedian(filteredMeasurements, maxDeviationFromMedianInCentimeters);
         return new SensorDataCarrierImpl()
                 .setRawData(dataToFilter.getRawData())
                 .setRawMeasurements(filteredMeasurements);
+    }
+
+    private void filterOutZeroMeasurements(@NonNull List<Measurement> measurementsToFilter) {
+        if (measurementsToFilter.size() > 0) {
+            List<Measurement> zeroMeasurements = new ArrayList<>();
+            for (Measurement measurement : measurementsToFilter) {
+                if (measurement.getDistanceCentimeters() == 0.0) {
+                    zeroMeasurements.add(measurement);
+                }
+            }
+            measurementsToFilter.removeAll(zeroMeasurements);
+        }
+    }
+
+    private void filterOutByDeviationFromMedian(@NonNull List<Measurement> measurementsToFilter, double maxDeviationFromMedianInCentimeters) {
+        if (measurementsToFilter.size() > 0) {
+            double median = findMedian(measurementsToFilter);
+            List<Measurement> measurementsToRemove = new ArrayList<>();
+            for (Measurement measurement : measurementsToFilter) {
+                if (Math.abs(measurement.getDistanceCentimeters() - median) > maxDeviationFromMedianInCentimeters) {
+                    measurementsToRemove.add(measurement);
+                }
+            }
+            measurementsToFilter.removeAll(measurementsToRemove);
+        }
     }
 
     private double findMedian(@NonNull List<Measurement> measurementsToFilter) {
