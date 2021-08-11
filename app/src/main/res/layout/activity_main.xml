@@ -114,7 +114,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/measurements"
-        app:layout_constraintBottom_toTopOf="@+id/recordedMeasurementsLabel"
+        app:layout_constraintBottom_toTopOf="@+id/filteredOutMeasurementsLabel"
         app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
         app:layout_constraintStart_toEndOf="@+id/scrollView"
         app:layout_constraintTop_toBottomOf="@+id/impactsLabel" />
@@ -136,11 +136,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/recorded_measurements"
-        app:layout_constraintBottom_toTopOf="@+id/filteredMeasurementsLabel"
+        app:layout_constraintBottom_toTopOf="@+id/filterDeviationLabel"
         app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/scrollView"
-        app:layout_constraintTop_toBottomOf="@+id/measurementsLabel" />
+        app:layout_constraintTop_toBottomOf="@+id/filteredOutMeasurementsLabel" />
 
     <TextView
         android:id="@+id/recordedMeasurementsCounter"
@@ -157,29 +156,27 @@
         app:layout_constraintVertical_bias="1.0" />
 
     <TextView
-        android:id="@+id/filteredMeasurementsLabel"
+        android:id="@+id/filteredOutMeasurementsLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/filtered_measurements"
-        app:layout_constraintBottom_toTopOf="@+id/filterDeviationLabel"
+        android:text="@string/filtered_out_measurements"
+        app:layout_constraintBottom_toTopOf="@+id/recordedMeasurementsLabel"
         app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
-        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toEndOf="@+id/scrollView"
-        app:layout_constraintTop_toBottomOf="@+id/recordedMeasurementsLabel" />
+        app:layout_constraintTop_toBottomOf="@+id/measurementsLabel" />
 
     <TextView
-        android:id="@+id/filteredMeasurementsCounter"
+        android:id="@+id/filteredOutMeasurementsCounter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
         android:gravity="end"
         android:minWidth="33dp"
         android:text="@string/zero"
-        app:layout_constraintBottom_toBottomOf="@+id/filteredMeasurementsLabel"
+        app:layout_constraintBottom_toBottomOf="@+id/filteredOutMeasurementsLabel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/measurementsLabel"
-        app:layout_constraintTop_toTopOf="@+id/filteredMeasurementsLabel"
+        app:layout_constraintTop_toTopOf="@+id/filteredOutMeasurementsLabel"
         app:layout_constraintVertical_bias="1.0" />
 
     <TextView
@@ -210,10 +207,10 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="@string/min_diff"
-        app:layout_constraintBottom_toTopOf="@+id/minDifferencePicker"
+        app:layout_constraintBottom_toBottomOf="@+id/filterDeviationLabel"
         app:layout_constraintEnd_toEndOf="@+id/minDifferencePicker"
         app:layout_constraintStart_toStartOf="@+id/minDifferencePicker"
-        app:layout_constraintTop_toBottomOf="@+id/filteredMeasurementsLabel" />
+        app:layout_constraintTop_toTopOf="@+id/filterDeviationLabel" />
 
     <NumberPicker
         android:id="@+id/minDifferencePicker"
@@ -231,8 +228,9 @@
         android:text="@string/filter_deviation"
         app:layout_constraintBottom_toTopOf="@+id/filterDeviationPicker"
         app:layout_constraintEnd_toEndOf="@+id/filterDeviationPicker"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/filterDeviationPicker"
-        app:layout_constraintTop_toBottomOf="@+id/filteredMeasurementsLabel" />
+        app:layout_constraintTop_toBottomOf="@+id/recordedMeasurementsLabel" />
 
     <NumberPicker
         android:id="@+id/filterDeviationPicker"

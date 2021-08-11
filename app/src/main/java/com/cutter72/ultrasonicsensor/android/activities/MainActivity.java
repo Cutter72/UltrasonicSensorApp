@@ -39,6 +39,7 @@ import com.cutter72.ultrasonicsensor.sensor.activists.DataFilter;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataFilterImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.ImpactCounterImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.Measurement;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
@@ -56,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
     private ConsoleViewLogger log;
     private static final int REQUEST_SAF = 1234;
-    private static final int IMPACTS_DEFAULT = 0;
     public static final int MEASUREMENTS_IN_ONE_LINE = 18;
 
     //states
@@ -66,12 +66,15 @@ public class MainActivity extends AppCompatActivity {
     //layout
     private static final int DEFAULT_INTERVAL_MILLIS = 100;
     private static final double[] MIN_DIFFERENCE_VALUES =
-            new double[]{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1};
+            new double[]{0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7,
+                    0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1};
     private static final double[] FILTER_DEVIATION_VALUES =
-            new double[]{0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
+            new double[]{0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8,
+                    0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2};
     @ColorInt
     private int defaultBtnBackgroundColor;
     private int measurementsReceived;
+    private int filteredOutMeasurements;
     private ConsoleView consoleView;
     private NumberPicker minDifferenceNumberPicker;
     private NumberPicker filterDeviationNumberPicker;
@@ -81,15 +84,13 @@ public class MainActivity extends AppCompatActivity {
     //sensor data listener
     private DataListener dataListener;
     //data storage
-    private SensorDataCarrier measurements;
     private SensorDataCarrier recordedMeasurements;
-    private SensorDataCarrier filteredMeasurements;
 
 
     //filters
     private int minDifferencePickerIndex;
     private int filterDeviationPickerIndex;
-    private int intervalMillis; //50ms => 20 impacts / second
+    private int minTimeIntervalMillis; //50ms => 20 impacts / second
     //impacts found
     private int impacts;
 
@@ -136,7 +137,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                intervalMillis = convertToMillis(seekBar);
+                minTimeIntervalMillis = convertToMillis(seekBar);
                 updateIntervalSeekBarLabel();
             }
         });
@@ -153,11 +154,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int convertToSeekBarProgressValue() {
-        return (intervalMillis - 50) / 50;
+        return (minTimeIntervalMillis - 50) / 50;
     }
 
     private void updateIntervalSeekBarLabel() {
-        minIntervalTextValue.setText(String.valueOf(intervalMillis));
+        minIntervalTextValue.setText(String.valueOf(minTimeIntervalMillis));
     }
 
     private void initializeNumberPickers() {
@@ -174,11 +175,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private int getDefaultMinDiffPickerIndex() {
-        return MIN_DIFFERENCE_VALUES.length / 10;
+        return 0;
     }
 
     private int getDefaultFilterDeviationPickerIndex() {
-        return FILTER_DEVIATION_VALUES.length / 10;
+        return 0;
     }
 
     private NumberPicker findAndPreparePicker(@IdRes int resId, double[] pickerValues,
@@ -232,18 +233,23 @@ public class MainActivity extends AppCompatActivity {
             boolean isDataNotEmpty = dataSize > 0;
             if (isDataNotEmpty) {
                 measurementsReceived += dataSize;
-//                measurements.addData(data);
+                SensorDataCarrier filteredData = dataFilter
+                        .filterByMedian(data, getFilterDeviationValue());
+                filteredOutMeasurements += dataSize - filteredData.size();
                 if (isRecording) {
-                    recordedMeasurements.addData(data);
-                    filteredMeasurements.addData(dataFilter.filterByMedian(data, getFilterDeviationValue()));
+                    recordedMeasurements.addData(filteredData);
                 }
-//                if (measurements.size() % MEASUREMENTS_IN_ONE_LINE == 0) {
+                impacts += new ImpactCounterImpl()
+                        .findImpacts(filteredData.getRawMeasurements(),
+                                filteredData.getRawMeasurements().size(),
+                                minTimeIntervalMillis,
+                                getMinDifferenceValue());
                 runOnUiThread(() -> {
-//                        printMeasurements(measurements.getLastMeasurements(MEASUREMENTS_IN_ONE_LINE));
-                    printMeasurements(data);
+                    printMeasurements(filteredData);
+                    updateImpactsCounterView();
                     updateMeasurementCounterView();
                     updateRecordedMeasurementCounterView();
-                    updateFilteredMeasurementCounterView();
+                    updateFilteredOutMeasurementCounterView();
                 });
 //                }
             } else {
@@ -350,15 +356,14 @@ public class MainActivity extends AppCompatActivity {
     private void initializeData() {
         isRawDataLogEnabled = false;
         isRecording = false;
+        impacts = 0;
         measurementsReceived = 0;
-        measurements = new SensorDataCarrierImpl();
+        filteredOutMeasurements = 0;
         recordedMeasurements = new SensorDataCarrierImpl();
-        filteredMeasurements = new SensorDataCarrierImpl();
         //count impacts
-        intervalMillis = DEFAULT_INTERVAL_MILLIS;
+        minTimeIntervalMillis = DEFAULT_INTERVAL_MILLIS;
         minDifferencePickerIndex = getDefaultMinDiffPickerIndex();
         filterDeviationPickerIndex = getDefaultFilterDeviationPickerIndex();
-        impacts = IMPACTS_DEFAULT;
         Measurement.resetId();
         initializeConsoleViewAndLogger();
         if (dataListener != null) {
@@ -376,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateLayout() {
         updateFilterDeviationNumberPickerView();
-        updateFilteredMeasurementCounterView();
+        updateFilteredOutMeasurementCounterView();
         updateImpactsCounterView();
         updateIntervalSeekBarView();
         updateMeasurementCounterView();
@@ -411,8 +416,8 @@ public class MainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.recordedMeasurementsCounter)).setText(String.valueOf(recordedMeasurements.size()));
     }
 
-    private void updateFilteredMeasurementCounterView() {
-        ((TextView) findViewById(R.id.filteredMeasurementsCounter)).setText(String.valueOf(filteredMeasurements.size()));
+    private void updateFilteredOutMeasurementCounterView() {
+        ((TextView) findViewById(R.id.filteredOutMeasurementsCounter)).setText(String.valueOf(filteredOutMeasurements));
     }
 
     private void updateRawDataLogBtn() {
@@ -515,7 +520,7 @@ public class MainActivity extends AppCompatActivity {
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sFilter.csv",
                 impacts,
                 recordedMeasurements.size(),
-                intervalMillis,
+                minTimeIntervalMillis,
                 getMinDifferenceValue(),
                 getFilterDeviationValue()));
         filesManager.writeToFile(outputFile, prepareCsvDataContent());
