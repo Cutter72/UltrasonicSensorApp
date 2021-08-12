@@ -24,7 +24,7 @@ public class DataListenerImpl implements DataListener {
     }
 
     @Override
-    public void startListening() {
+    public boolean startListening() {
         if (sensorConnection.open()) {
             isListening = true;
             executorService.submit(() -> {
@@ -47,9 +47,11 @@ public class DataListenerImpl implements DataListener {
                     }
                 }
             });
+            return true;
         } else {
             System.out.println("openConnectionFailure");
         }
+        return false;
     }
 
     private boolean waitForData() {
