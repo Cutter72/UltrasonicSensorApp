@@ -4,11 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".android.activities.MainActivity">
 
     <Button
         android:id="@+id/openConnection"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:onClick="onClickOpenConnection"
         android:text="@string/open_connection"
@@ -17,7 +17,7 @@
 
     <Button
         android:id="@+id/btnRecording"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:onClick="onClickRecording"
         android:text="@string/start_recording"
@@ -26,40 +26,46 @@
 
     <Button
         android:id="@+id/reset"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
         android:onClick="onClickReset"
         android:text="@string/reset_app"
+        app:layout_constraintBottom_toBottomOf="@+id/clearConsole"
+        app:layout_constraintEnd_toStartOf="@+id/clearConsole"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/clearConsole"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="2dp"
         android:onClick="onClickClearConsole"
         android:text="@string/clear_console"
         app:layout_constraintEnd_toStartOf="@+id/btnRawDataLog"
+        app:layout_constraintStart_toEndOf="@+id/reset"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/btnRawDataLog"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="2dp"
+        android:layout_marginStart="8dp"
         android:onClick="onClickRawDataLog"
         android:text="@string/show_raw_data"
         app:layout_constraintEnd_toStartOf="@+id/saveDataToCsv"
+        app:layout_constraintStart_toEndOf="@+id/clearConsole"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/saveDataToCsv"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:onClick="onClickSaveDataToCsv"
         android:text="@string/save_data_to_csv"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btnRawDataLog"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ScrollView
@@ -69,7 +75,7 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/minDifferencePicker"
+        app:layout_constraintEnd_toStartOf="@+id/filterDeviationPicker"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/btnRecording">
 
@@ -82,109 +88,170 @@
 
     <TextView
         android:id="@+id/impactsLabel"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:text="@string/impacts"
-        app:layout_constraintBottom_toBottomOf="@+id/reset"
-        app:layout_constraintStart_toEndOf="@+id/reset"
-        app:layout_constraintTop_toTopOf="@+id/reset" />
+        app:layout_constraintBottom_toTopOf="@+id/measurementsLabel"
+        app:layout_constraintEnd_toStartOf="@+id/impactsCounter"
+        app:layout_constraintStart_toEndOf="@+id/scrollView"
+        app:layout_constraintTop_toBottomOf="@+id/btnRecording" />
 
     <TextView
         android:id="@+id/impactsCounter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:gravity="end"
+        android:minWidth="33dp"
         android:text="@string/zero"
         app:layout_constraintBottom_toBottomOf="@+id/impactsLabel"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/impactsLabel"
         app:layout_constraintTop_toTopOf="@+id/impactsLabel" />
 
     <TextView
         android:id="@+id/measurementsLabel"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:text="@string/measurements"
-        app:layout_constraintBottom_toBottomOf="@+id/impactsCounter"
-        app:layout_constraintStart_toEndOf="@+id/impactsCounter"
-        app:layout_constraintTop_toTopOf="@+id/impactsCounter"
-        app:layout_constraintVertical_bias="0.0" />
+        app:layout_constraintBottom_toTopOf="@+id/filteredOutMeasurementsLabel"
+        app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
+        app:layout_constraintStart_toEndOf="@+id/scrollView"
+        app:layout_constraintTop_toBottomOf="@+id/impactsLabel" />
 
     <TextView
         android:id="@+id/measurementsCounter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:gravity="end"
+        android:minWidth="33dp"
         android:text="@string/zero"
         app:layout_constraintBottom_toBottomOf="@+id/measurementsLabel"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/measurementsLabel"
         app:layout_constraintTop_toTopOf="@+id/measurementsLabel" />
+
+    <TextView
+        android:id="@+id/recordedMeasurementsLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/recorded_measurements"
+        app:layout_constraintBottom_toTopOf="@+id/filterDeviationLabel"
+        app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
+        app:layout_constraintStart_toEndOf="@+id/scrollView"
+        app:layout_constraintTop_toBottomOf="@+id/filteredOutMeasurementsLabel" />
+
+    <TextView
+        android:id="@+id/recordedMeasurementsCounter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:minWidth="33dp"
+        android:text="@string/zero"
+        app:layout_constraintBottom_toBottomOf="@+id/recordedMeasurementsLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/measurementsLabel"
+        app:layout_constraintTop_toTopOf="@+id/recordedMeasurementsLabel"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <TextView
+        android:id="@+id/filteredOutMeasurementsLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="@string/filtered_out_measurements"
+        app:layout_constraintBottom_toTopOf="@+id/recordedMeasurementsLabel"
+        app:layout_constraintEnd_toStartOf="@+id/measurementsCounter"
+        app:layout_constraintStart_toEndOf="@+id/scrollView"
+        app:layout_constraintTop_toBottomOf="@+id/measurementsLabel" />
+
+    <TextView
+        android:id="@+id/filteredOutMeasurementsCounter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:minWidth="33dp"
+        android:text="@string/zero"
+        app:layout_constraintBottom_toBottomOf="@+id/filteredOutMeasurementsLabel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/measurementsLabel"
+        app:layout_constraintTop_toTopOf="@+id/filteredOutMeasurementsLabel"
+        app:layout_constraintVertical_bias="1.0" />
 
     <TextView
         android:id="@+id/bufferTimeOutLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="4dp"
         android:text="@string/min_time_interval"
-        app:layout_constraintBottom_toBottomOf="@+id/openConnection"
+        android:textColor="#54000000"
+        app:layout_constraintEnd_toStartOf="@+id/minIntervalTextValue"
         app:layout_constraintStart_toEndOf="@+id/openConnection"
-        app:layout_constraintTop_toTopOf="@+id/openConnection" />
+        app:layout_constraintTop_toBottomOf="@+id/clearConsole" />
 
     <TextView
-        android:id="@+id/minTimeInterval"
-        android:layout_width="wrap_content"
+        android:id="@+id/minIntervalTextValue"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:gravity="start"
+        android:minWidth="33dp"
         android:text="@string/zero"
-        app:layout_constraintBottom_toBottomOf="@+id/bufferTimeOutLabel"
-        app:layout_constraintEnd_toStartOf="@+id/minTimeIntervalSeekBar"
+        app:layout_constraintEnd_toStartOf="@+id/btnRecording"
+        app:layout_constraintStart_toEndOf="@+id/bufferTimeOutLabel"
         app:layout_constraintTop_toTopOf="@+id/bufferTimeOutLabel" />
 
     <TextView
         android:id="@+id/minDifferenceLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:text="@string/min_diff"
-        app:layout_constraintBottom_toTopOf="@+id/minDifferencePicker"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/scrollView" />
+        app:layout_constraintBottom_toBottomOf="@+id/filterDeviationLabel"
+        app:layout_constraintEnd_toEndOf="@+id/minDifferencePicker"
+        app:layout_constraintStart_toStartOf="@+id/minDifferencePicker"
+        app:layout_constraintTop_toTopOf="@+id/filterDeviationLabel" />
 
     <NumberPicker
         android:id="@+id/minDifferencePicker"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:background="@color/teal_200"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/filterDeviationLabel" />
 
     <TextView
-        android:id="@+id/avgMeasurementsLabel"
+        android:id="@+id/filterDeviationLabel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/avg_measur"
-        app:layout_constraintBottom_toTopOf="@+id/avgMeasurementsPicker"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/scrollView" />
+        android:text="@string/filter_deviation"
+        app:layout_constraintBottom_toTopOf="@+id/filterDeviationPicker"
+        app:layout_constraintEnd_toEndOf="@+id/filterDeviationPicker"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/filterDeviationPicker"
+        app:layout_constraintTop_toBottomOf="@+id/recordedMeasurementsLabel" />
 
     <NumberPicker
-        android:id="@+id/avgMeasurementsPicker"
+        android:id="@+id/filterDeviationPicker"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginEnd="8dp"
         android:background="@color/teal_200"
-        app:layout_constraintBottom_toTopOf="@+id/minDifferenceLabel"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/minDifferencePicker"
+        app:layout_constraintTop_toBottomOf="@+id/filterDeviationLabel" />
 
     <SeekBar
-        android:id="@+id/minTimeIntervalSeekBar"
+        android:id="@+id/minIntervalSeekBar"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginEnd="24dp"
-        android:max="9"
+        android:layout_marginTop="20dp"
+        android:max="19"
         android:progress="4"
         app:layout_constraintBottom_toBottomOf="@+id/btnRecording"
         app:layout_constraintEnd_toStartOf="@+id/btnRecording"
-        app:layout_constraintStart_toStartOf="@+id/clearConsole"
+        app:layout_constraintStart_toEndOf="@+id/openConnection"
         app:layout_constraintTop_toTopOf="@+id/btnRecording" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
