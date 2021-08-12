@@ -2,7 +2,6 @@ package com.cutter72.ultrasonicsensor.sensor.activists;
 
 import androidx.annotation.NonNull;
 
-import com.balsikandar.crashreporter.CrashReporter;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
@@ -32,43 +31,6 @@ public class DataListenerImplTest {
         DataCallback dataCallback = data -> dataReceived.add(data);
         dataListenerNotConnected = new DataListenerImpl(sensorNotConnected, dataCallback);
         dataListenerConnected = new DataListenerImpl(sensorConnected, dataCallback);
-    }
-
-    @NonNull
-    private SensorConnection getNotConnectedSensor() {
-        return new SensorConnection() {
-            @Override
-            public boolean open() {
-                return false;
-            }
-
-            @Override
-            public boolean isOpen() {
-                return false;
-            }
-
-            @NonNull
-            @Override
-            public SensorDataCarrier readData() {
-                return new SensorDataCarrierImpl();
-            }
-
-            @NonNull
-            @Override
-            public SensorDataCarrier readData(@NonNull byte[] buffer) {
-                return new SensorDataCarrierImpl();
-            }
-
-            @Override
-            public void close() {
-
-            }
-
-            @Override
-            public boolean clearHardwareInputOutputBuffers() {
-                return false;
-            }
-        };
     }
 
     @NonNull
@@ -108,6 +70,43 @@ public class DataListenerImplTest {
         };
     }
 
+    @NonNull
+    private SensorConnection getNotConnectedSensor() {
+        return new SensorConnection() {
+            @Override
+            public boolean open() {
+                return false;
+            }
+
+            @Override
+            public boolean isOpen() {
+                return false;
+            }
+
+            @NonNull
+            @Override
+            public SensorDataCarrier readData() {
+                return new SensorDataCarrierImpl();
+            }
+
+            @NonNull
+            @Override
+            public SensorDataCarrier readData(@NonNull byte[] buffer) {
+                return new SensorDataCarrierImpl();
+            }
+
+            @Override
+            public void close() {
+
+            }
+
+            @Override
+            public boolean clearHardwareInputOutputBuffers() {
+                return false;
+            }
+        };
+    }
+
     @Test
     public void startListeningNotConnected() {
         assertFalse(dataListenerNotConnected.startListening());
@@ -138,7 +137,6 @@ public class DataListenerImplTest {
             return true;
         } catch (InterruptedException e) {
             e.printStackTrace();
-            CrashReporter.logException(e);
             return false;
         }
     }
