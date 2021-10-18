@@ -18,7 +18,7 @@ public class ImpactCounterImpl implements ImpactCounter {
     @Override
     public int findImpacts(@NonNull List<Measurement> measurementsToSearch,
                            @IntRange(from = 5, to = 20) int measurementWindow,
-                           @IntRange(from = 50, to = 2000) long minTimeIntervalBetweenImpactMillis,
+                           @IntRange(from = 5, to = 5000) long minTimeIntervalBetweenImpactMillis,
                            @FloatRange(from = 0.1, to = 2.0) double minDifference) {
         int impacts = 0;
         this.minDifference = minDifference;

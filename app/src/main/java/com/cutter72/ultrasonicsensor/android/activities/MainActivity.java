@@ -55,6 +55,7 @@ import static com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl.NO_SIGNA
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
+    public static final int INTERVAL_STEP = 5;
     private ConsoleViewLogger log;
     private static final int REQUEST_SAF = 1234;
     public static final int MEASUREMENTS_IN_ONE_LINE = 18;
@@ -64,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isRawDataLogEnabled;
 
     //layout
-    private static final int DEFAULT_INTERVAL_MILLIS = 100;
+    private static final int DEFAULT_INTERVAL_MILLIS = 35;
     private static final double[] MIN_DIFFERENCE_VALUES =
             new double[]{0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7,
                     0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1};
@@ -145,16 +146,16 @@ public class MainActivity extends AppCompatActivity {
         updateIntervalSeekBarLabel();
     }
 
-    private int convertToMillis(SeekBar seekBar) {
-        return seekBar.getProgress() * 50 + 50;
-    }
-
     private void updateIntervalSeekBarView() {
         minIntervalSeekBar.setProgress(convertToSeekBarProgressValue());
     }
 
+    private int convertToMillis(SeekBar seekBar) {
+        return seekBar.getProgress() * INTERVAL_STEP + INTERVAL_STEP;
+    }
+
     private int convertToSeekBarProgressValue() {
-        return (minTimeIntervalMillis - 50) / 50;
+        return (minTimeIntervalMillis - INTERVAL_STEP) / INTERVAL_STEP;
     }
 
     private void updateIntervalSeekBarLabel() {
