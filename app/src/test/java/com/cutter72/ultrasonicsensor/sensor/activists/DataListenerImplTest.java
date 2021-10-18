@@ -49,13 +49,13 @@ public class DataListenerImplTest {
             @NonNull
             @Override
             public SensorDataCarrier readData() {
-                return new SensorDataCarrierImpl();
+                return new SensorDataCarrierImpl(new DataDecoderImpl());
             }
 
             @NonNull
             @Override
             public SensorDataCarrier readData(@NonNull byte[] buffer) {
-                return new SensorDataCarrierImpl();
+                return new SensorDataCarrierImpl(new DataDecoderImpl());
             }
 
             @Override
@@ -86,13 +86,13 @@ public class DataListenerImplTest {
             @NonNull
             @Override
             public SensorDataCarrier readData() {
-                return new SensorDataCarrierImpl();
+                return new SensorDataCarrierImpl(new DataDecoderImpl());
             }
 
             @NonNull
             @Override
             public SensorDataCarrier readData(@NonNull byte[] buffer) {
-                return new SensorDataCarrierImpl();
+                return new SensorDataCarrierImpl(new DataDecoderImpl());
             }
 
             @Override

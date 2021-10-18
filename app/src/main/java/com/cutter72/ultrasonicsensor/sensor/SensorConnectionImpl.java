@@ -7,6 +7,7 @@ import android.hardware.usb.UsbManager;
 import androidx.annotation.NonNull;
 
 import com.cutter72.ultrasonicsensor.android.other.ConsoleViewLogger;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrier;
 import com.cutter72.ultrasonicsensor.sensor.solids.SensorDataCarrierImpl;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
@@ -159,7 +160,7 @@ public class SensorConnectionImpl implements SensorConnection {
     @NonNull
     @Override
     public SensorDataCarrier readData(@NonNull byte[] buffer) {
-        SensorDataCarrier data = new SensorDataCarrierImpl();
+        SensorDataCarrier data = new SensorDataCarrierImpl(new DataDecoderImpl());
         if (sensorUsbSerialPort != null) {
             if (sensorUsbSerialPort.isOpen()) {
                 try {

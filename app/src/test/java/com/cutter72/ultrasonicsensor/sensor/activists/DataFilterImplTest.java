@@ -60,7 +60,7 @@ public class DataFilterImplTest {
     }
 
     private SensorDataCarrier generateInputData(List<Measurement> rawMeasurements) {
-        return new SensorDataCarrierImpl().setRawMeasurements(rawMeasurements);
+        return new SensorDataCarrierImpl(new DataDecoderImpl()).setRawMeasurements(rawMeasurements);
     }
 
     @NonNull
@@ -90,7 +90,7 @@ public class DataFilterImplTest {
     @Test
     public void filterByMedianZeroData() {
         //GIVEN
-        SensorDataCarrier zeroData = new SensorDataCarrierImpl()
+        SensorDataCarrier zeroData = new SensorDataCarrierImpl(new DataDecoderImpl())
                 .setRawMeasurements(Collections.singletonList(new Measurement(0.0)));
         //WHEN
         SensorDataCarrier filteredZeroData = new DataFilterImpl()
@@ -102,7 +102,7 @@ public class DataFilterImplTest {
     @Test
     public void filterByMedianEmptyData() {
         //GIVEN
-        SensorDataCarrier emptyData = new SensorDataCarrierImpl();
+        SensorDataCarrier emptyData = new SensorDataCarrierImpl(new DataDecoderImpl());
         //WHEN
         SensorDataCarrier filteredEmptyData = new DataFilterImpl()
                 .filterByMedian(emptyData, MAX_DEVIATION_FROM_MEDIAN_IN_CENTIMETERS);

@@ -35,6 +35,7 @@ import com.cutter72.ultrasonicsensor.files.FilesManager;
 import com.cutter72.ultrasonicsensor.files.FilesManagerImpl;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnection;
 import com.cutter72.ultrasonicsensor.sensor.SensorConnectionImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataFilterImpl;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListener;
 import com.cutter72.ultrasonicsensor.sensor.activists.DataListenerImpl;
@@ -367,7 +368,7 @@ public class MainActivity extends AppCompatActivity {
         impacts = 0;
         measurementsReceived = 0;
         filteredOutMeasurements = 0;
-        recordedMeasurements = new SensorDataCarrierImpl();
+        recordedMeasurements = new SensorDataCarrierImpl(new DataDecoderImpl());
         //count impacts
         minTimeIntervalMillis = DEFAULT_INTERVAL_MILLIS;
         minDifferencePickerIndex = getDefaultMinDiffPickerIndex();

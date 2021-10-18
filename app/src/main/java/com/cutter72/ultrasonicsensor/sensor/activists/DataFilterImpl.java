@@ -17,7 +17,7 @@ public class DataFilterImpl implements DataFilter {
         List<Measurement> filteredMeasurements = new ArrayList<>(dataToFilter.getRawMeasurements());
         filterOutZeroMeasurements(filteredMeasurements);
         filterOutByDeviationFromMedian(filteredMeasurements, maxDeviationFromMedianInCentimeters);
-        return new SensorDataCarrierImpl()
+        return new SensorDataCarrierImpl(new DataDecoderImpl())
                 .setRawData(dataToFilter.getRawData())
                 .setRawMeasurements(filteredMeasurements);
     }

@@ -2,16 +2,18 @@ package com.cutter72.ultrasonicsensor.sensor.solids;
 
 import androidx.annotation.NonNull;
 
-import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoderImpl;
+import com.cutter72.ultrasonicsensor.sensor.activists.DataDecoder;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SensorDataCarrierImpl implements SensorDataCarrier {
+    private final DataDecoder dataDecoder;
     private final List<byte[]> rawData;
     private final List<Measurement> rawMeasurements;
 
-    public SensorDataCarrierImpl() {
+    public SensorDataCarrierImpl(DataDecoder dataDecoder) {
+        this.dataDecoder = dataDecoder;
         this.rawData = new ArrayList<>();
         this.rawMeasurements = new ArrayList<>();
     }
@@ -19,7 +21,7 @@ public class SensorDataCarrierImpl implements SensorDataCarrier {
     @Override
     public SensorDataCarrier addRawData(@NonNull byte[] rawData) {
         this.rawData.add(rawData);
-        this.rawMeasurements.addAll(new DataDecoderImpl().decodeDataFromSensor(rawData));
+        this.rawMeasurements.addAll(dataDecoder.decodeDataFromSensor(rawData));
         return this;
     }
 
