@@ -73,8 +73,8 @@ public class MainActivity extends AppCompatActivity {
                     0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2};
     @ColorInt
     private int defaultBtnBackgroundColor;
-    private int measurementsReceived;
-    private int filteredOutMeasurements;
+    private int measurementsReceivedCounter;
+    private int filteredOutMeasurementsCounter;
     private ConsoleView consoleView;
     private NumberPicker minDifferenceNumberPicker;
     private NumberPicker filterDeviationNumberPicker;
@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
     private int filterDeviationPickerIndex;
     private int minTimeIntervalMillis; //50ms => 20 impacts / second
     //impacts found
-    private int impacts;
+    private int impactsCounter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -231,13 +231,13 @@ public class MainActivity extends AppCompatActivity {
             int dataSize = data.size();
             boolean isDataNotEmpty = dataSize > 0;
             if (isDataNotEmpty) {
-                measurementsReceived += dataSize;
+                measurementsReceivedCounter += dataSize;
                 SensorDataCarrier filteredData = filterByMedian(data);
-                filteredOutMeasurements += dataSize - filteredData.size();
+                filteredOutMeasurementsCounter += dataSize - filteredData.size();
                 if (isRecording) {
                     recordedMeasurements.addData(filteredData);
                 }
-                impacts += findImpacts(filteredData);
+                impactsCounter += findImpacts(filteredData);
                 runOnUiThread(() -> updateUiWithNewData(filteredData));
             } else {
                 printNoSignalInfo();
@@ -365,9 +365,9 @@ public class MainActivity extends AppCompatActivity {
     private void initializeData() {
         isRawDataLogEnabled = false;
         isRecording = false;
-        impacts = 0;
-        measurementsReceived = 0;
-        filteredOutMeasurements = 0;
+        impactsCounter = 0;
+        measurementsReceivedCounter = 0;
+        filteredOutMeasurementsCounter = 0;
         recordedMeasurements = new SensorDataCarrierImpl(new DataDecoderImpl());
         //count impacts
         minTimeIntervalMillis = DEFAULT_INTERVAL_MILLIS;
@@ -414,11 +414,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateImpactsCounterView() {
-        ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impacts));
+        ((TextView) findViewById(R.id.impactsCounter)).setText(String.valueOf(impactsCounter));
     }
 
     private void updateMeasurementCounterView() {
-        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(measurementsReceived));
+        ((TextView) findViewById(R.id.measurementsCounter)).setText(String.valueOf(measurementsReceivedCounter));
     }
 
     private void updateRecordedMeasurementCounterView() {
@@ -426,7 +426,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateFilteredOutMeasurementCounterView() {
-        ((TextView) findViewById(R.id.filteredOutMeasurementsCounter)).setText(String.valueOf(filteredOutMeasurements));
+        ((TextView) findViewById(R.id.filteredOutMeasurementsCounter)).setText(String.valueOf(filteredOutMeasurementsCounter));
     }
 
     private void updateRawDataLogBtn() {
@@ -527,7 +527,7 @@ public class MainActivity extends AppCompatActivity {
         File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/UltrasonicSensor");
         filesManager.prepareDirectory(directory.getAbsolutePath());
         File outputFile = new File(directory.getAbsolutePath() + File.separator + String.format("%sImpacts%sMmnts%sInterval%sMinDiff%sFilter.csv",
-                impacts,
+                impactsCounter,
                 recordedMeasurements.size(),
                 minTimeIntervalMillis,
                 getMinDifferenceValue(),
